@@ -1,8 +1,64 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { serviceCategories } from "@/data/categories";
-import { ArrowLeft, Star, Users, Clock, Shield } from "lucide-react";
+import { ArrowLeft, Star, Users, Clock, Shield, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
+
 const Index = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+        
+        if (session?.user) {
+          setTimeout(() => {
+            supabase
+              .from("profiles")
+              .select("role")
+              .eq("user_id", session.user.id)
+              .single()
+              .then(({ data }) => {
+                setUserRole(data?.role ?? null);
+              });
+          }, 0);
+        } else {
+          setUserRole(null);
+        }
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+      
+      if (session?.user) {
+        supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .single()
+          .then(({ data }) => {
+            setUserRole(data?.role ?? null);
+          });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const dashboardLink = userRole === "provider" ? "/provider/dashboard" : "/customer/dashboard";
+
   return <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="fixed top-0 right-0 left-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
@@ -16,16 +72,33 @@ const Index = () => {
                 الخدمات
               </Button>
             </Link>
-            <Link to="/auth">
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
-                الدخول
-              </Button>
-            </Link>
-            <Link to="/auth?mode=signup">
-              <Button variant="hero" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
-                انضم
-              </Button>
-            </Link>
+            {!loading && (
+              user ? (
+                <>
+                  <Link to={dashboardLink}>
+                    <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+                      لوحة التحكم
+                    </Button>
+                  </Link>
+                  <Button variant="ghost" size="icon" onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link to="/auth">
+                    <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+                      الدخول
+                    </Button>
+                  </Link>
+                  <Link to="/auth?mode=signup">
+                    <Button variant="hero" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+                      انضم
+                    </Button>
+                  </Link>
+                </>
+              )
+            )}
           </div>
         </div>
       </nav>

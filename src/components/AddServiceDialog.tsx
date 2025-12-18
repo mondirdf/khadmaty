@@ -19,7 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { serviceCategories } from "@/data/categories";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
 
 interface AddServiceDialogProps {
   open: boolean;
@@ -29,6 +29,8 @@ interface AddServiceDialogProps {
 
 export const AddServiceDialog = ({ open, onOpenChange, onServiceAdded }: AddServiceDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -37,6 +39,27 @@ export const AddServiceDialog = ({ open, onOpenChange, onServiceAdded }: AddServ
     price_per_hour: "",
     location: "",
   });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("حجم الصورة يجب أن يكون أقل من 5 ميجابايت");
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +91,30 @@ export const AddServiceDialog = ({ open, onOpenChange, onServiceAdded }: AddServ
         return;
       }
 
+      let imageUrl: string | null = null;
+
+      // Upload image if exists
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from("service-images")
+          .upload(fileName, imageFile);
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          toast.error("حدث خطأ أثناء رفع الصورة");
+          return;
+        }
+
+        const { data: publicUrl } = supabase.storage
+          .from("service-images")
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrl.publicUrl;
+      }
+
       const { error } = await supabase.from("services").insert({
         title: formData.title.trim(),
         category: formData.category,
@@ -77,6 +124,7 @@ export const AddServiceDialog = ({ open, onOpenChange, onServiceAdded }: AddServ
         location: formData.location.trim() || null,
         provider_id: profile.id,
         is_active: true,
+        image_url: imageUrl,
       });
 
       if (error) {
@@ -94,6 +142,8 @@ export const AddServiceDialog = ({ open, onOpenChange, onServiceAdded }: AddServ
         price_per_hour: "",
         location: "",
       });
+      setImageFile(null);
+      setImagePreview(null);
       onOpenChange(false);
       onServiceAdded();
     } catch (error) {
@@ -112,6 +162,39 @@ export const AddServiceDialog = ({ open, onOpenChange, onServiceAdded }: AddServ
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Image Upload */}
+          <div className="space-y-2">
+            <Label>صورة الخدمة</Label>
+            {imagePreview ? (
+              <div className="relative w-full h-40 rounded-lg overflow-hidden">
+                <img 
+                  src={imagePreview} 
+                  alt="Preview" 
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute top-2 left-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-secondary/50 transition-colors">
+                <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                <span className="text-sm text-muted-foreground">اضغط لرفع صورة</span>
+                <span className="text-xs text-muted-foreground mt-1">PNG, JPG (أقصى 5 ميجابايت)</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="title">اسم الخدمة *</Label>
             <Input
