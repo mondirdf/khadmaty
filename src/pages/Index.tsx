@@ -1,15 +1,17 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/SignOutButton";
 import { serviceCategories } from "@/data/categories";
-import { ArrowLeft, Star, Users, Clock, Shield, LogOut } from "lucide-react";
+import { ArrowLeft, Star, Users, Clock, Shield, LogOut, User, Briefcase } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 
 const Index = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,15 +24,17 @@ const Index = () => {
           setTimeout(() => {
             supabase
               .from("profiles")
-              .select("role")
+              .select("role, full_name")
               .eq("user_id", session.user.id)
               .single()
               .then(({ data }) => {
                 setUserRole(data?.role ?? null);
+                setUserName(data?.full_name ?? session.user.user_metadata?.full_name ?? null);
               });
           }, 0);
         } else {
           setUserRole(null);
+          setUserName(null);
         }
       }
     );
@@ -42,11 +46,12 @@ const Index = () => {
       if (session?.user) {
         supabase
           .from("profiles")
-          .select("role")
+          .select("role, full_name")
           .eq("user_id", session.user.id)
           .single()
           .then(({ data }) => {
             setUserRole(data?.role ?? null);
+            setUserName(data?.full_name ?? session.user.user_metadata?.full_name ?? null);
           });
       }
     });
@@ -74,12 +79,22 @@ const Index = () => {
               {!loading && (
                 user ? (
                   <>
+                    {userName && (
+                      <span className="text-xs sm:text-sm text-muted-foreground hidden md:block">
+                        مرحباً، {userName}
+                      </span>
+                    )}
                     <Link to={dashboardLink}>
-                      <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
-                        لوحة التحكم
+                      <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-4 gap-1.5">
+                        {userRole === "provider" ? (
+                          <Briefcase className="h-4 w-4" />
+                        ) : (
+                          <User className="h-4 w-4" />
+                        )}
+                        <span className="hidden sm:inline">لوحة التحكم</span>
                       </Button>
                     </Link>
-                    <SignOutButton>
+                    <SignOutButton onSignedOut={() => navigate("/")}>
                       <Button variant="ghost" size="icon" aria-label="تسجيل الخروج">
                         <LogOut className="h-4 w-4" />
                       </Button>
@@ -122,17 +137,52 @@ const Index = () => {
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-fade-up px-4" style={{
               animationDelay: "0.2s"
             }}>
-                <Link to="/services" className="w-full sm:w-auto">
-                  <Button variant="hero" size="lg" className="w-full sm:w-auto text-sm sm:text-base">
-                    تصفح الخدمات
-                    <ArrowLeft className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                  </Button>
-                </Link>
-                <Link to="/auth?mode=signup&role=provider" className="w-full sm:w-auto">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base">
-                    انضم كمقدم خدمة مجاناً
-                  </Button>
-                </Link>
+                {user ? (
+                  userRole === "provider" ? (
+                    <>
+                      <Link to="/provider/dashboard" className="w-full sm:w-auto">
+                        <Button variant="hero" size="lg" className="w-full sm:w-auto text-sm sm:text-base gap-2">
+                          <Briefcase className="h-4 w-4 sm:h-5 sm:w-5" />
+                          لوحة التحكم
+                        </Button>
+                      </Link>
+                      <Link to="/services" className="w-full sm:w-auto">
+                        <Button variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base">
+                          تصفح الخدمات
+                        </Button>
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/services" className="w-full sm:w-auto">
+                        <Button variant="hero" size="lg" className="w-full sm:w-auto text-sm sm:text-base">
+                          تصفح الخدمات
+                          <ArrowLeft className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                        </Button>
+                      </Link>
+                      <Link to="/customer/dashboard" className="w-full sm:w-auto">
+                        <Button variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base gap-2">
+                          <User className="h-4 w-4 sm:h-5 sm:w-5" />
+                          حجوزاتي
+                        </Button>
+                      </Link>
+                    </>
+                  )
+                ) : (
+                  <>
+                    <Link to="/services" className="w-full sm:w-auto">
+                      <Button variant="hero" size="lg" className="w-full sm:w-auto text-sm sm:text-base">
+                        تصفح الخدمات
+                        <ArrowLeft className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                      </Button>
+                    </Link>
+                    <Link to="/auth?mode=signup&role=provider" className="w-full sm:w-auto">
+                      <Button variant="outline" size="lg" className="w-full sm:w-auto text-sm sm:text-base">
+                        انضم كمقدم خدمة مجاناً
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -233,24 +283,26 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-12 sm:py-20 px-4" aria-labelledby="cta-heading">
-        <div className="container">
-          <aside className="bg-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 shadow-elevated text-center max-w-3xl mx-auto border border-border/50">
-            <h2 id="cta-heading" className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-3 sm:mb-4">
-              هل أنت مقدم خدمة؟ انضم إلى خدمتي!
-            </h2>
-            <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-xl mx-auto">
-              انضم إلى منصة خدمتي واحصل على عملاء جدد. سجل خدماتك مجاناً وابدأ في استقبال الحجوزات اليوم.
-            </p>
-            <Link to="/auth?mode=signup&role=provider">
-              <Button variant="accent" size="lg" className="w-full sm:w-auto">
-                سجل كمقدم خدمة مجاناً
-              </Button>
-            </Link>
-          </aside>
-        </div>
-      </section>
+      {/* CTA Section - Only show for non-providers */}
+      {(!user || userRole !== "provider") && (
+        <section className="py-12 sm:py-20 px-4" aria-labelledby="cta-heading">
+          <div className="container">
+            <aside className="bg-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 shadow-elevated text-center max-w-3xl mx-auto border border-border/50">
+              <h2 id="cta-heading" className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-3 sm:mb-4">
+                هل أنت مقدم خدمة؟ انضم إلى خدمتي!
+              </h2>
+              <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-xl mx-auto">
+                انضم إلى منصة خدمتي واحصل على عملاء جدد. سجل خدماتك مجاناً وابدأ في استقبال الحجوزات اليوم.
+              </p>
+              <Link to="/auth?mode=signup&role=provider">
+                <Button variant="accent" size="lg" className="w-full sm:w-auto">
+                  سجل كمقدم خدمة مجاناً
+                </Button>
+              </Link>
+            </aside>
+          </div>
+        </section>
+      )}
       </main>
 
       {/* Footer */}
