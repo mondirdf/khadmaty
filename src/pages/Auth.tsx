@@ -53,7 +53,7 @@ const Auth = () => {
           navigate(role === "provider" ? "/provider/dashboard" : "/customer/dashboard");
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
@@ -64,9 +64,21 @@ const Auth = () => {
           } else {
             toast.error(error.message);
           }
-        } else {
+        } else if (data.user) {
           toast.success("تم تسجيل الدخول بنجاح!");
-          navigate("/");
+          
+          // Get user profile to determine role
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("user_id", data.user.id)
+            .single();
+          
+          if (profile?.role === "provider") {
+            navigate("/provider/dashboard");
+          } else {
+            navigate("/customer/dashboard");
+          }
         }
       }
     } catch (error) {
