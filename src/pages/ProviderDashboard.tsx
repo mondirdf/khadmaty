@@ -3,9 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
-import { toast } from "sonner";
 import { Calendar, Plus, Briefcase, LogOut, Settings } from "lucide-react";
 import { AddServiceDialog } from "@/components/AddServiceDialog";
+import { SignOutButton } from "@/components/SignOutButton";
 import { Tables } from "@/integrations/supabase/types";
 
 const ProviderDashboard = () => {
@@ -76,13 +76,6 @@ const ProviderDashboard = () => {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    toast.success("تم تسجيل الخروج");
-    navigate("/");
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -105,9 +98,11 @@ const ProviderDashboard = () => {
             <span className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
               مرحباً، {userMeta?.full_name || "زائر"}
             </span>
-            <Button variant="ghost" size="icon" onClick={handleSignOut}>
-              <LogOut className="h-5 w-5" />
-            </Button>
+            <SignOutButton onSignedOut={() => navigate("/")}>
+              <Button variant="ghost" size="icon">
+                <LogOut className="h-5 w-5" />
+              </Button>
+            </SignOutButton>
           </div>
         </div>
       </nav>

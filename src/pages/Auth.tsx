@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Eye, EyeOff, ArrowRight, User, Briefcase } from "lucide-react";
@@ -21,6 +22,14 @@ const Auth = () => {
   const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    const saved = localStorage.getItem("khadmaty_remember_me");
+    return saved ? saved === "true" : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("khadmaty_remember_me", String(rememberMe));
+  }, [rememberMe]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,6 +216,17 @@ const Auth = () => {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="rememberMe"
+                checked={rememberMe}
+                onCheckedChange={(v) => setRememberMe(Boolean(v))}
+              />
+              <Label htmlFor="rememberMe" className="text-sm text-muted-foreground cursor-pointer">
+                تذكرني
+              </Label>
             </div>
 
             <Button type="submit" variant="hero" size="lg" className="w-full" disabled={loading}>
