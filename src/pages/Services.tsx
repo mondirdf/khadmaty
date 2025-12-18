@@ -95,56 +95,56 @@ const Services = () => {
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="container flex items-center justify-between h-16">
-          <Link to="/" className="text-2xl font-bold text-gradient">
+        <div className="container flex items-center justify-between h-14 sm:h-16 px-4">
+          <Link to="/" className="text-xl sm:text-2xl font-bold text-gradient">
             خدماتك
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link to="/auth">
-              <Button variant="outline" size="sm">
-                تسجيل الدخول
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+                الدخول
               </Button>
             </Link>
             <Link to="/auth?mode=signup">
-              <Button variant="hero" size="sm">
-                انضم الآن
+              <Button variant="hero" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+                انضم
               </Button>
             </Link>
           </div>
         </div>
       </nav>
 
-      <div className="container py-8">
+      <div className="container py-4 sm:py-8 px-4">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-4 sm:mb-6">
           <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowRight className="h-5 w-5" />
           </Link>
-          <h1 className="text-2xl font-bold text-foreground">تصفح الخدمات</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">تصفح الخدمات</h1>
         </div>
 
         {/* Search and Filter */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="ابحث عن خدمة أو مقدم خدمة..."
+              placeholder="ابحث عن خدمة..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-12 pr-10"
+              className="h-11 sm:h-12 pr-10 text-sm sm:text-base"
             />
           </div>
-          <Button variant="outline" className="h-12 gap-2">
+          <Button variant="outline" className="h-11 sm:h-12 gap-2">
             <Filter className="h-4 w-4" />
             تصفية
           </Button>
         </div>
 
         {/* Categories */}
-        <div className="flex gap-2 overflow-x-auto pb-4 mb-8 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-3 sm:pb-4 mb-6 sm:mb-8 scrollbar-hide -mx-4 px-4">
           <button
             onClick={() => setSelectedCategory(null)}
-            className={`px-4 py-2 rounded-full whitespace-nowrap transition-all ${
+            className={`px-3 sm:px-4 py-2 rounded-full whitespace-nowrap transition-all text-sm ${
               !selectedCategory
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -156,13 +156,13 @@ const Services = () => {
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={`px-4 py-2 rounded-full whitespace-nowrap transition-all flex items-center gap-2 ${
+              className={`px-3 sm:px-4 py-2 rounded-full whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 text-sm ${
                 selectedCategory === category.id
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
-              <category.icon className="h-4 w-4" />
+              <category.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               {category.name}
             </button>
           ))}
@@ -177,7 +177,7 @@ const Services = () => {
 
         {/* Services Grid */}
         {!loading && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredServices.map((service, index) => {
               const category = serviceCategories.find(c => c.id === service.category);
               return (
@@ -187,47 +187,47 @@ const Services = () => {
                   className="group animate-fade-up"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
-                  <div className="bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-card transition-all duration-300 hover:-translate-y-1 border border-border/50">
+                  <div className="bg-card rounded-xl sm:rounded-2xl overflow-hidden shadow-soft hover:shadow-card transition-all duration-300 hover:-translate-y-1 border border-border/50">
                     <div className="aspect-video relative overflow-hidden">
                       <img
                         src={service.profiles?.avatar_url || getServiceImage(service.category)}
                         alt={service.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <div className="absolute top-3 right-3">
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-background/90 backdrop-blur-sm text-foreground">
+                      <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
+                        <span className="px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-background/90 backdrop-blur-sm text-foreground">
                           {category?.name || service.category}
                         </span>
                       </div>
                       {service.is_online && (
-                        <div className="absolute top-3 left-3">
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/90 backdrop-blur-sm text-primary-foreground">
+                        <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
+                          <span className="px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-primary/90 backdrop-blur-sm text-primary-foreground">
                             أونلاين
                           </span>
                         </div>
                       )}
                     </div>
-                    <div className="p-5">
+                    <div className="p-4 sm:p-5">
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <h3 className="font-semibold text-lg text-foreground">{service.title}</h3>
-                          <p className="text-sm text-muted-foreground">{service.profiles?.full_name}</p>
+                          <h3 className="font-semibold text-base sm:text-lg text-foreground">{service.title}</h3>
+                          <p className="text-xs sm:text-sm text-muted-foreground">{service.profiles?.full_name}</p>
                         </div>
                       </div>
                       {service.location && (
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
-                          <MapPin className="h-4 w-4" />
+                        <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
+                          <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           {service.location}
                         </div>
                       )}
                       {service.description && (
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 line-clamp-2">
                           {service.description}
                         </p>
                       )}
                       <div className="flex items-center justify-between">
-                        <span className="text-primary font-semibold">{formatPrice(service)}</span>
-                        <Button variant="hero" size="sm">
+                        <span className="text-primary font-semibold text-sm sm:text-base">{formatPrice(service)}</span>
+                        <Button variant="hero" size="sm" className="text-xs sm:text-sm">
                           احجز الآن
                         </Button>
                       </div>

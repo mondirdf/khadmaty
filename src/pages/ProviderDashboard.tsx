@@ -57,12 +57,12 @@ const ProviderDashboard = () => {
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="container flex items-center justify-between h-16">
-          <Link to="/" className="text-2xl font-bold text-gradient">
+        <div className="container flex items-center justify-between h-14 sm:h-16 px-4">
+          <Link to="/" className="text-xl sm:text-2xl font-bold text-gradient">
             خدماتك
           </Link>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
               مرحباً، {userMeta?.full_name || "زائر"}
             </span>
             <Button variant="ghost" size="icon" onClick={handleSignOut}>
@@ -72,27 +72,27 @@ const ProviderDashboard = () => {
         </div>
       </nav>
 
-      <div className="container py-8">
-        <div className="grid md:grid-cols-4 gap-6">
+      <div className="container py-4 sm:py-8 px-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6">
           {/* Sidebar */}
           <div className="md:col-span-1">
-            <div className="bg-card rounded-2xl p-6 shadow-soft border border-border/50">
-              <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
-                <Briefcase className="h-10 w-10 text-accent" />
+            <div className="bg-card rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-soft border border-border/50">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <Briefcase className="h-8 w-8 sm:h-10 sm:w-10 text-accent" />
               </div>
-              <h2 className="text-xl font-bold text-foreground text-center mb-1">
+              <h2 className="text-lg sm:text-xl font-bold text-foreground text-center mb-1">
                 {userMeta?.full_name || "زائر"}
               </h2>
-              <p className="text-sm text-muted-foreground text-center mb-6">مقدم خدمة</p>
+              <p className="text-xs sm:text-sm text-muted-foreground text-center mb-4 sm:mb-6">مقدم خدمة</p>
               
               {/* Stats */}
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-secondary/50 rounded-xl p-3 text-center">
-                  <div className="text-2xl font-bold text-foreground">0</div>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4 sm:mb-6">
+                <div className="bg-secondary/50 rounded-lg sm:rounded-xl p-2 sm:p-3 text-center">
+                  <div className="text-xl sm:text-2xl font-bold text-foreground">0</div>
                   <div className="text-xs text-muted-foreground">حجوزات</div>
                 </div>
-                <div className="bg-secondary/50 rounded-xl p-3 text-center">
-                  <div className="text-2xl font-bold text-foreground">0</div>
+                <div className="bg-secondary/50 rounded-lg sm:rounded-xl p-2 sm:p-3 text-center">
+                  <div className="text-xl sm:text-2xl font-bold text-foreground">0</div>
                   <div className="text-xs text-muted-foreground">خدمات</div>
                 </div>
               </div>
@@ -100,24 +100,24 @@ const ProviderDashboard = () => {
               <nav className="space-y-2">
                 <button 
                   onClick={() => setActiveTab("bookings")}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+                  className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-colors text-sm ${
                     activeTab === "bookings" ? "bg-primary/10 text-primary" : "hover:bg-secondary text-foreground"
                   }`}
                 >
-                  <Calendar className="h-5 w-5" />
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
                   الحجوزات الواردة
                 </button>
                 <button 
                   onClick={() => setActiveTab("services")}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+                  className={`w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-colors text-sm ${
                     activeTab === "services" ? "bg-primary/10 text-primary" : "hover:bg-secondary text-foreground"
                   }`}
                 >
-                  <Briefcase className="h-5 w-5" />
+                  <Briefcase className="h-4 w-4 sm:h-5 sm:w-5" />
                   خدماتي
                 </button>
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-secondary text-foreground transition-colors">
-                  <Settings className="h-5 w-5" />
+                <button className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl hover:bg-secondary text-foreground transition-colors text-sm">
+                  <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
                   الإعدادات
                 </button>
               </nav>
@@ -128,15 +128,15 @@ const ProviderDashboard = () => {
           <div className="md:col-span-3">
             {activeTab === "bookings" && (
               <>
-                <div className="flex items-center justify-between mb-6">
-                  <h1 className="text-2xl font-bold text-foreground">الحجوزات الواردة</h1>
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">الحجوزات الواردة</h1>
                 </div>
 
                 {/* Empty State */}
-                <div className="bg-card rounded-2xl p-12 shadow-soft border border-border/50 text-center">
-                  <Calendar className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-foreground mb-2">لا توجد حجوزات</h3>
-                  <p className="text-muted-foreground">
+                <div className="bg-card rounded-xl sm:rounded-2xl p-8 sm:p-12 shadow-soft border border-border/50 text-center">
+                  <Calendar className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">لا توجد حجوزات</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground">
                     لم تتلقَ أي حجوزات بعد. أضف خدماتك لبدء استقبال العملاء.
                   </p>
                 </div>
@@ -145,22 +145,23 @@ const ProviderDashboard = () => {
 
             {activeTab === "services" && (
               <>
-                <div className="flex items-center justify-between mb-6">
-                  <h1 className="text-2xl font-bold text-foreground">خدماتي</h1>
-                  <Button variant="hero" className="gap-2">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">خدماتي</h1>
+                  <Button variant="hero" className="gap-2 text-sm">
                     <Plus className="h-4 w-4" />
-                    إضافة خدمة
+                    <span className="hidden sm:inline">إضافة خدمة</span>
+                    <span className="sm:hidden">إضافة</span>
                   </Button>
                 </div>
 
                 {/* Empty State */}
-                <div className="bg-card rounded-2xl p-12 shadow-soft border border-border/50 text-center">
-                  <Briefcase className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-foreground mb-2">لا توجد خدمات</h3>
-                  <p className="text-muted-foreground mb-6">
-                    لم تضف أي خدمات بعد. أضف خدماتك لتظهر للعملاء المحتملين.
+                <div className="bg-card rounded-xl sm:rounded-2xl p-8 sm:p-12 shadow-soft border border-border/50 text-center">
+                  <Briefcase className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">لا توجد خدمات</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
+                    لم تضف أي خدمات بعد. أضف خدماتك لتظهر للعملاء.
                   </p>
-                  <Button variant="hero" size="lg" className="gap-2">
+                  <Button variant="hero" size="lg" className="gap-2 w-full sm:w-auto">
                     <Plus className="h-5 w-5" />
                     إضافة خدمة جديدة
                   </Button>

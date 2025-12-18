@@ -77,20 +77,20 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
       {/* Form Side */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-md">
-          <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors">
+          <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 sm:mb-8 transition-colors text-sm">
             <ArrowRight className="h-4 w-4" />
             العودة للرئيسية
           </Link>
 
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
+          <div className="mb-6 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
               {mode === "login" ? "مرحباً بعودتك" : "أنشئ حسابك"}
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               {mode === "login"
                 ? "سجل دخولك للوصول إلى حسابك"
                 : "انضم إلى منصة خدماتك اليوم"}
@@ -98,41 +98,41 @@ const Auth = () => {
           </div>
 
           {mode === "signup" && (
-            <div className="flex gap-3 mb-6">
+            <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6">
               <button
                 type="button"
                 onClick={() => setRole("customer")}
-                className={`flex-1 p-4 rounded-xl border-2 transition-all ${
+                className={`flex-1 p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all ${
                   role === "customer"
                     ? "border-primary bg-primary/5"
                     : "border-border hover:border-primary/50"
                 }`}
               >
-                <User className={`h-6 w-6 mx-auto mb-2 ${role === "customer" ? "text-primary" : "text-muted-foreground"}`} />
-                <div className={`font-medium ${role === "customer" ? "text-primary" : "text-foreground"}`}>زبون</div>
+                <User className={`h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1.5 sm:mb-2 ${role === "customer" ? "text-primary" : "text-muted-foreground"}`} />
+                <div className={`font-medium text-sm sm:text-base ${role === "customer" ? "text-primary" : "text-foreground"}`}>زبون</div>
                 <div className="text-xs text-muted-foreground">أبحث عن خدمات</div>
               </button>
               <button
                 type="button"
                 onClick={() => setRole("provider")}
-                className={`flex-1 p-4 rounded-xl border-2 transition-all ${
+                className={`flex-1 p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all ${
                   role === "provider"
                     ? "border-primary bg-primary/5"
                     : "border-border hover:border-primary/50"
                 }`}
               >
-                <Briefcase className={`h-6 w-6 mx-auto mb-2 ${role === "provider" ? "text-primary" : "text-muted-foreground"}`} />
-                <div className={`font-medium ${role === "provider" ? "text-primary" : "text-foreground"}`}>مقدم خدمة</div>
+                <Briefcase className={`h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1.5 sm:mb-2 ${role === "provider" ? "text-primary" : "text-muted-foreground"}`} />
+                <div className={`font-medium text-sm sm:text-base ${role === "provider" ? "text-primary" : "text-foreground"}`}>مقدم خدمة</div>
                 <div className="text-xs text-muted-foreground">أقدم خدماتي</div>
               </button>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             {mode === "signup" && (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">الاسم الكامل</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="fullName" className="text-sm">الاسم الكامل</Label>
                   <Input
                     id="fullName"
                     type="text"
@@ -140,11 +140,11 @@ const Auth = () => {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required
-                    className="h-12"
+                    className="h-11 sm:h-12"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">رقم الهاتف</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="phone" className="text-sm">رقم الهاتف</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -152,15 +152,15 @@ const Auth = () => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required
-                    className="h-12"
+                    className="h-11 sm:h-12"
                     dir="ltr"
                   />
                 </div>
               </>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">البريد الإلكتروني</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="email" className="text-sm">البريد الإلكتروني</Label>
               <Input
                 id="email"
                 type="email"
@@ -168,13 +168,13 @@ const Auth = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-12"
+                className="h-11 sm:h-12"
                 dir="ltr"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">كلمة المرور</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="password" className="text-sm">كلمة المرور</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -184,7 +184,7 @@ const Auth = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="h-12 pl-12"
+                  className="h-11 sm:h-12 pl-12"
                   dir="ltr"
                 />
                 <button
@@ -202,8 +202,8 @@ const Auth = () => {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-muted-foreground">
+          <div className="mt-4 sm:mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
               {mode === "login" ? "ليس لديك حساب؟" : "لديك حساب بالفعل؟"}{" "}
               <button
                 onClick={() => setMode(mode === "login" ? "signup" : "login")}
@@ -219,8 +219,8 @@ const Auth = () => {
       {/* Decorative Side */}
       <div className="hidden lg:flex flex-1 gradient-hero items-center justify-center p-12">
         <div className="text-center text-primary-foreground max-w-md">
-          <div className="text-6xl font-bold mb-6">خدماتك</div>
-          <p className="text-xl opacity-90">
+          <div className="text-5xl xl:text-6xl font-bold mb-6">خدماتك</div>
+          <p className="text-lg xl:text-xl opacity-90">
             منصتك الموثوقة لحجز الخدمات المحلية بكل سهولة وأمان
           </p>
         </div>
