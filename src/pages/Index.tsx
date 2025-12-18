@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { serviceCategories } from "@/data/categories";
 import { ArrowLeft, Star, Users, Clock, Shield } from "lucide-react";
-import Logo from "@/components/Logo";
 
 const Index = () => {
   return (
@@ -10,7 +9,9 @@ const Index = () => {
       {/* Navigation */}
       <nav className="fixed top-0 right-0 left-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container flex items-center justify-between h-16">
-          <Logo size="md" />
+          <Link to="/" className="text-2xl font-bold text-gradient">
+            خدماتك
+          </Link>
           <div className="flex items-center gap-3">
             <Link to="/services">
               <Button variant="ghost" size="sm">
@@ -163,7 +164,7 @@ const Index = () => {
       <footer className="py-12 border-t border-border bg-secondary/20">
         <div className="container">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <Logo size="md" />
+            <div className="text-2xl font-bold text-gradient">خدماتك</div>
             <div className="flex gap-6 text-sm text-muted-foreground">
               <Link to="/services" className="hover:text-foreground transition-colors">الخدمات</Link>
               <Link to="/auth" className="hover:text-foreground transition-colors">تسجيل الدخول</Link>
