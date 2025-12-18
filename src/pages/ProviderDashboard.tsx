@@ -3,8 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
-import { Calendar, Plus, Briefcase, LogOut, Settings } from "lucide-react";
+import { Calendar, Plus, Briefcase, LogOut, Settings, Pencil } from "lucide-react";
 import { AddServiceDialog } from "@/components/AddServiceDialog";
+import { EditServiceDialog } from "@/components/EditServiceDialog";
 import { SignOutButton } from "@/components/SignOutButton";
 import { Tables } from "@/integrations/supabase/types";
 
@@ -15,6 +16,8 @@ const ProviderDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"bookings" | "services">("bookings");
   const [showAddService, setShowAddService] = useState(false);
+  const [showEditService, setShowEditService] = useState(false);
+  const [editingService, setEditingService] = useState<Tables<"services"> | null>(null);
   const [services, setServices] = useState<Tables<"services">[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
 
@@ -209,31 +212,55 @@ const ProviderDashboard = () => {
                   <div className="grid gap-4">
                     {services.map((service) => (
                       <div key={service.id} className="bg-card rounded-xl p-4 sm:p-6 shadow-soft border border-border/50">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="text-lg font-semibold text-foreground">{service.title}</h3>
-                            <p className="text-sm text-muted-foreground mt-1">{service.description}</p>
-                            <div className="flex flex-wrap gap-2 mt-3">
-                              {service.price_fixed && (
-                                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                                  {service.price_fixed} ر.س
+                        <div className="flex items-start gap-4">
+                          {service.image_url && (
+                            <img 
+                              src={service.image_url} 
+                              alt={service.title}
+                              className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover flex-shrink-0"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <h3 className="text-lg font-semibold text-foreground">{service.title}</h3>
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{service.description}</p>
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                  {service.price_fixed && (
+                                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                      {service.price_fixed} ر.س
+                                    </span>
+                                  )}
+                                  {service.price_per_hour && (
+                                    <span className="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full">
+                                      {service.price_per_hour} ر.س/ساعة
+                                    </span>
+                                  )}
+                                  {service.location && (
+                                    <span className="text-xs bg-secondary text-muted-foreground px-2 py-1 rounded-full">
+                                      {service.location}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setEditingService(service);
+                                    setShowEditService(true);
+                                  }}
+                                  className="h-8 w-8"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <span className={`text-xs px-2 py-1 rounded-full ${service.is_active ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+                                  {service.is_active ? 'نشط' : 'غير نشط'}
                                 </span>
-                              )}
-                              {service.price_per_hour && (
-                                <span className="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full">
-                                  {service.price_per_hour} ر.س/ساعة
-                                </span>
-                              )}
-                              {service.location && (
-                                <span className="text-xs bg-secondary text-muted-foreground px-2 py-1 rounded-full">
-                                  {service.location}
-                                </span>
-                              )}
+                              </div>
                             </div>
                           </div>
-                          <span className={`text-xs px-2 py-1 rounded-full ${service.is_active ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
-                            {service.is_active ? 'نشط' : 'غير نشط'}
-                          </span>
                         </div>
                       </div>
                     ))}
@@ -249,6 +276,13 @@ const ProviderDashboard = () => {
         open={showAddService} 
         onOpenChange={setShowAddService} 
         onServiceAdded={fetchServices}
+      />
+
+      <EditServiceDialog
+        open={showEditService}
+        onOpenChange={setShowEditService}
+        onServiceUpdated={fetchServices}
+        service={editingService}
       />
     </div>
   );
