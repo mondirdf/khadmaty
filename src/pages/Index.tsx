@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { SignOutButton } from "@/components/SignOutButton";
 import { serviceCategories } from "@/data/categories";
 import { ArrowLeft, Star, Users, Clock, Shield, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -53,11 +54,8 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
-
   const dashboardLink = userRole === "provider" ? "/provider/dashboard" : "/customer/dashboard";
+
 
   return <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -80,9 +78,11 @@ const Index = () => {
                       لوحة التحكم
                     </Button>
                   </Link>
-                  <Button variant="ghost" size="icon" onClick={handleSignOut}>
-                    <LogOut className="h-4 w-4" />
-                  </Button>
+                  <SignOutButton>
+                    <Button variant="ghost" size="icon">
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </SignOutButton>
                 </>
               ) : (
                 <>
