@@ -6,6 +6,34 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ArrowRight, Star, MapPin, Clock, Phone, CheckCircle } from "lucide-react";
+import { z } from "zod";
+
+// Validation schema for booking form
+const bookingSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, { message: "الاسم يجب أن يكون حرفين على الأقل" })
+    .max(100, { message: "الاسم يجب ألا يتجاوز 100 حرف" })
+    .regex(/^[\u0600-\u06FF\s\w]+$/, { message: "الاسم يحتوي على أحرف غير صالحة" }),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^05\d{8}$/, { message: "رقم الهاتف يجب أن يكون بصيغة 05xxxxxxxx" }),
+  location: z
+    .string()
+    .trim()
+    .min(5, { message: "العنوان يجب أن يكون 5 أحرف على الأقل" })
+    .max(200, { message: "العنوان يجب ألا يتجاوز 200 حرف" }),
+  notes: z
+    .string()
+    .trim()
+    .max(500, { message: "الملاحظات يجب ألا تتجاوز 500 حرف" })
+    .optional()
+    .transform(val => val || ""),
+});
+
+type BookingFormData = z.infer<typeof bookingSchema>;
 
 // Demo provider data
 const demoProvider = {
@@ -34,11 +62,38 @@ const Booking = () => {
     location: "",
     notes: "",
   });
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof BookingFormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const validateForm = (): boolean => {
+    const result = bookingSchema.safeParse(formData);
+    if (!result.success) {
+      const errors: Partial<Record<keyof BookingFormData, string>> = {};
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as keyof BookingFormData;
+        errors[field] = err.message;
+      });
+      setFormErrors(errors);
+      return false;
+    }
+    setFormErrors({});
+    return true;
+  };
+
+  const handleNextStep = () => {
+    if (validateForm()) {
+      setStep(3);
+    }
+  };
+
   const handleSubmit = async () => {
+    if (!validateForm()) {
+      toast.error("يرجى تصحيح الأخطاء في النموذج");
+      return;
+    }
+    
     setIsSubmitting(true);
-    // Simulate API call
+    // Simulate API call - in production this would insert to database with server-side validation
     await new Promise(resolve => setTimeout(resolve, 1500));
     toast.success("تم إرسال طلب الحجز بنجاح!");
     setStep(4);
@@ -202,9 +257,16 @@ const Booking = () => {
                         id="name"
                         placeholder="أدخل اسمك"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="h-11 sm:h-12"
+                        onChange={(e) => {
+                          setFormData({ ...formData, name: e.target.value });
+                          if (formErrors.name) setFormErrors({ ...formErrors, name: undefined });
+                        }}
+                        className={`h-11 sm:h-12 ${formErrors.name ? 'border-destructive' : ''}`}
+                        maxLength={100}
                       />
+                      {formErrors.name && (
+                        <p className="text-xs text-destructive">{formErrors.name}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5 sm:space-y-2">
                       <Label htmlFor="phone" className="text-sm sm:text-base">رقم الهاتف</Label>
@@ -213,10 +275,18 @@ const Booking = () => {
                         type="tel"
                         placeholder="05xxxxxxxx"
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="h-11 sm:h-12"
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+                          setFormData({ ...formData, phone: value });
+                          if (formErrors.phone) setFormErrors({ ...formErrors, phone: undefined });
+                        }}
+                        className={`h-11 sm:h-12 ${formErrors.phone ? 'border-destructive' : ''}`}
                         dir="ltr"
+                        maxLength={10}
                       />
+                      {formErrors.phone && (
+                        <p className="text-xs text-destructive">{formErrors.phone}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5 sm:space-y-2">
                       <Label htmlFor="location" className="text-sm sm:text-base">العنوان / الموقع</Label>
@@ -224,9 +294,16 @@ const Booking = () => {
                         id="location"
                         placeholder="الحي، الشارع، رقم المبنى"
                         value={formData.location}
-                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                        className="h-11 sm:h-12"
+                        onChange={(e) => {
+                          setFormData({ ...formData, location: e.target.value });
+                          if (formErrors.location) setFormErrors({ ...formErrors, location: undefined });
+                        }}
+                        className={`h-11 sm:h-12 ${formErrors.location ? 'border-destructive' : ''}`}
+                        maxLength={200}
                       />
+                      {formErrors.location && (
+                        <p className="text-xs text-destructive">{formErrors.location}</p>
+                      )}
                     </div>
                     <div className="space-y-1.5 sm:space-y-2">
                       <Label htmlFor="notes" className="text-sm sm:text-base">ملاحظات إضافية (اختياري)</Label>
@@ -234,9 +311,17 @@ const Booking = () => {
                         id="notes"
                         placeholder="اكتب أي تفاصيل إضافية..."
                         value={formData.notes}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, notes: e.target.value });
+                          if (formErrors.notes) setFormErrors({ ...formErrors, notes: undefined });
+                        }}
+                        className={formErrors.notes ? 'border-destructive' : ''}
                         rows={3}
+                        maxLength={500}
                       />
+                      {formErrors.notes && (
+                        <p className="text-xs text-destructive">{formErrors.notes}</p>
+                      )}
                     </div>
                   </div>
 
@@ -249,7 +334,7 @@ const Booking = () => {
                       size="lg"
                       className="flex-1 text-sm sm:text-base"
                       disabled={!formData.name || !formData.phone || !formData.location}
-                      onClick={() => setStep(3)}
+                      onClick={handleNextStep}
                     >
                       التالي
                     </Button>
