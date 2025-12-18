@@ -19,7 +19,7 @@ const bookingSchema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(/^05\d{8}$/, { message: "رقم الهاتف يجب أن يكون بصيغة 05xxxxxxxx" }),
+    .regex(/^0[567]\d{8}$/, { message: "رقم الهاتف يجب أن يبدأ بـ 05 أو 06 أو 07" }),
   location: z
     .string()
     .trim()
@@ -273,7 +273,7 @@ const Booking = () => {
                       <Input
                         id="phone"
                         type="tel"
-                        placeholder="05xxxxxxxx"
+                        placeholder="05/06/07xxxxxxxx"
                         value={formData.phone}
                         onChange={(e) => {
                           const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
