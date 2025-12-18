@@ -1,33 +1,95 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { serviceCategories } from "@/data/categories";
-import { Search, Star, MapPin, ArrowRight, Filter } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Search, Star, MapPin, ArrowRight, Filter, Loader2 } from "lucide-react";
 
-// Demo services data
-const demoServices = [
-  { id: "1", name: "أحمد محمد", category: "electrician", rating: 4.9, reviews: 127, location: "الرياض - حي النزهة", price: "150 ر.س/ساعة", image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=200&h=200&fit=crop" },
-  { id: "2", name: "خالد العمري", category: "plumber", rating: 4.8, reviews: 89, location: "الرياض - حي الورود", price: "120 ر.س/ساعة", image: "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=200&h=200&fit=crop" },
-  { id: "3", name: "صالون الأناقة", category: "barber", rating: 4.9, reviews: 234, location: "الرياض - حي الصحافة", price: "50 ر.س", image: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=200&h=200&fit=crop" },
-  { id: "4", name: "أ. سارة أحمد", category: "tutor", rating: 5.0, reviews: 67, location: "أونلاين", price: "100 ر.س/ساعة", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop" },
-  { id: "5", name: "محمد الفهد", category: "painter", rating: 4.7, reviews: 45, location: "الرياض - حي الملقا", price: "200 ر.س/غرفة", image: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=200&h=200&fit=crop" },
-  { id: "6", name: "ورشة السيارات المتقدمة", category: "mechanic", rating: 4.8, reviews: 156, location: "الرياض - حي السليمانية", price: "فحص مجاني", image: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=200&h=200&fit=crop" },
-];
+interface ServiceWithProvider {
+  id: string;
+  title: string;
+  category: string;
+  description: string | null;
+  price_fixed: number | null;
+  price_per_hour: number | null;
+  location: string | null;
+  is_online: boolean | null;
+  profiles: {
+    full_name: string;
+    avatar_url: string | null;
+  } | null;
+}
 
 const Services = () => {
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get("category");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam);
   const [searchQuery, setSearchQuery] = useState("");
+  const [services, setServices] = useState<ServiceWithProvider[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredServices = demoServices.filter((service) => {
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("services")
+        .select(`
+          id,
+          title,
+          category,
+          description,
+          price_fixed,
+          price_per_hour,
+          location,
+          is_online,
+          profiles:provider_id (
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq("is_active", true);
+
+      if (error) throw error;
+      setServices(data || []);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredServices = services.filter((service) => {
     const matchesCategory = !selectedCategory || service.category === selectedCategory;
     const matchesSearch = !searchQuery || 
-      service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      service.profiles?.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       serviceCategories.find(c => c.id === service.category)?.name.includes(searchQuery);
     return matchesCategory && matchesSearch;
   });
+
+  const formatPrice = (service: ServiceWithProvider) => {
+    if (service.price_fixed) return `${service.price_fixed} ر.س`;
+    if (service.price_per_hour) return `${service.price_per_hour} ر.س/ساعة`;
+    return "اتصل للسعر";
+  };
+
+  const getServiceImage = (category: string) => {
+    const images: Record<string, string> = {
+      electrician: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&h=300&fit=crop",
+      plumber: "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&h=300&fit=crop",
+      barber: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400&h=300&fit=crop",
+      tutor: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=300&fit=crop",
+      painter: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=400&h=300&fit=crop",
+      mechanic: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=400&h=300&fit=crop",
+      cleaner: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&h=300&fit=crop",
+      carpenter: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=400&h=300&fit=crop",
+    };
+    return images[category] || "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400&h=300&fit=crop";
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -106,59 +168,96 @@ const Services = () => {
           ))}
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+
         {/* Services Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredServices.map((service, index) => {
-            const category = serviceCategories.find(c => c.id === service.category);
-            return (
-              <Link
-                key={service.id}
-                to={`/booking/${service.id}`}
-                className="group animate-fade-up"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                <div className="bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-card transition-all duration-300 hover:-translate-y-1 border border-border/50">
-                  <div className="aspect-video relative overflow-hidden">
-                    <img
-                      src={service.image}
-                      alt={service.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-3 right-3">
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-background/90 backdrop-blur-sm text-foreground">
-                        {category?.name}
-                      </span>
+        {!loading && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredServices.map((service, index) => {
+              const category = serviceCategories.find(c => c.id === service.category);
+              return (
+                <Link
+                  key={service.id}
+                  to={`/booking/${service.id}`}
+                  className="group animate-fade-up"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  <div className="bg-card rounded-2xl overflow-hidden shadow-soft hover:shadow-card transition-all duration-300 hover:-translate-y-1 border border-border/50">
+                    <div className="aspect-video relative overflow-hidden">
+                      <img
+                        src={service.profiles?.avatar_url || getServiceImage(service.category)}
+                        alt={service.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute top-3 right-3">
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-background/90 backdrop-blur-sm text-foreground">
+                          {category?.name || service.category}
+                        </span>
+                      </div>
+                      {service.is_online && (
+                        <div className="absolute top-3 left-3">
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/90 backdrop-blur-sm text-primary-foreground">
+                            أونلاين
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <div className="p-5">
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-semibold text-lg text-foreground">{service.name}</h3>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Star className="h-4 w-4 fill-accent text-accent" />
-                        <span className="font-medium">{service.rating}</span>
-                        <span className="text-muted-foreground">({service.reviews})</span>
+                    <div className="p-5">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="font-semibold text-lg text-foreground">{service.title}</h3>
+                          <p className="text-sm text-muted-foreground">{service.profiles?.full_name}</p>
+                        </div>
+                      </div>
+                      {service.location && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
+                          <MapPin className="h-4 w-4" />
+                          {service.location}
+                        </div>
+                      )}
+                      {service.description && (
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                          {service.description}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-primary font-semibold">{formatPrice(service)}</span>
+                        <Button variant="hero" size="sm">
+                          احجز الآن
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
-                      <MapPin className="h-4 w-4" />
-                      {service.location}
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-primary font-semibold">{service.price}</span>
-                      <Button variant="hero" size="sm">
-                        احجز الآن
-                      </Button>
-                    </div>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
-        {filteredServices.length === 0 && (
+        {/* Empty State */}
+        {!loading && filteredServices.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-muted-foreground text-lg">لا توجد نتائج مطابقة لبحثك</p>
+            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground text-lg mb-2">لا توجد خدمات متاحة حالياً</p>
+            <p className="text-sm text-muted-foreground">
+              {services.length === 0 
+                ? "كن أول من يقدم خدمة على المنصة!" 
+                : "جرب تغيير معايير البحث"}
+            </p>
+            {services.length === 0 && (
+              <Link to="/auth?mode=signup">
+                <Button variant="hero" className="mt-4">
+                  سجل كمقدم خدمة
+                </Button>
+              </Link>
+            )}
           </div>
         )}
       </div>
