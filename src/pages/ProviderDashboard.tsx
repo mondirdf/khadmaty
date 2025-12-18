@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
-import { Calendar, Plus, Briefcase, LogOut, User as UserIcon, Settings, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Calendar, Plus, Briefcase, LogOut, Settings } from "lucide-react";
+import { AddServiceDialog } from "@/components/AddServiceDialog";
+import { Tables } from "@/integrations/supabase/types";
 
 const ProviderDashboard = () => {
   const navigate = useNavigate();
@@ -12,6 +14,44 @@ const ProviderDashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"bookings" | "services">("bookings");
+  const [showAddService, setShowAddService] = useState(false);
+  const [services, setServices] = useState<Tables<"services">[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+
+  const fetchServices = async () => {
+    if (!user) return;
+    
+    setServicesLoading(true);
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile) {
+        const { data, error } = await supabase
+          .from("services")
+          .select("*")
+          .eq("provider_id", profile.id)
+          .order("created_at", { ascending: false });
+
+        if (!error && data) {
+          setServices(data);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching services:", error);
+    } finally {
+      setServicesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchServices();
+    }
+  }, [user]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -147,30 +187,74 @@ const ProviderDashboard = () => {
               <>
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
                   <h1 className="text-xl sm:text-2xl font-bold text-foreground">خدماتي</h1>
-                  <Button variant="hero" className="gap-2 text-sm">
+                  <Button variant="hero" className="gap-2 text-sm" onClick={() => setShowAddService(true)}>
                     <Plus className="h-4 w-4" />
                     <span className="hidden sm:inline">إضافة خدمة</span>
                     <span className="sm:hidden">إضافة</span>
                   </Button>
                 </div>
 
-                {/* Empty State */}
-                <div className="bg-card rounded-xl sm:rounded-2xl p-8 sm:p-12 shadow-soft border border-border/50 text-center">
-                  <Briefcase className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-3 sm:mb-4" />
-                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">لا توجد خدمات</h3>
-                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
-                    لم تضف أي خدمات بعد. أضف خدماتك لتظهر للعملاء.
-                  </p>
-                  <Button variant="hero" size="lg" className="gap-2 w-full sm:w-auto">
-                    <Plus className="h-5 w-5" />
-                    إضافة خدمة جديدة
-                  </Button>
-                </div>
+                {servicesLoading ? (
+                  <div className="bg-card rounded-xl sm:rounded-2xl p-8 sm:p-12 shadow-soft border border-border/50 text-center">
+                    <div className="text-muted-foreground">جاري التحميل...</div>
+                  </div>
+                ) : services.length === 0 ? (
+                  <div className="bg-card rounded-xl sm:rounded-2xl p-8 sm:p-12 shadow-soft border border-border/50 text-center">
+                    <Briefcase className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                    <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">لا توجد خدمات</h3>
+                    <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
+                      لم تضف أي خدمات بعد. أضف خدماتك لتظهر للعملاء.
+                    </p>
+                    <Button variant="hero" size="lg" className="gap-2 w-full sm:w-auto" onClick={() => setShowAddService(true)}>
+                      <Plus className="h-5 w-5" />
+                      إضافة خدمة جديدة
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {services.map((service) => (
+                      <div key={service.id} className="bg-card rounded-xl p-4 sm:p-6 shadow-soft border border-border/50">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold text-foreground">{service.title}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">{service.description}</p>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {service.price_fixed && (
+                                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                  {service.price_fixed} ر.س
+                                </span>
+                              )}
+                              {service.price_per_hour && (
+                                <span className="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full">
+                                  {service.price_per_hour} ر.س/ساعة
+                                </span>
+                              )}
+                              {service.location && (
+                                <span className="text-xs bg-secondary text-muted-foreground px-2 py-1 rounded-full">
+                                  {service.location}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded-full ${service.is_active ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+                            {service.is_active ? 'نشط' : 'غير نشط'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
         </div>
       </div>
+
+      <AddServiceDialog 
+        open={showAddService} 
+        onOpenChange={setShowAddService} 
+        onServiceAdded={fetchServices}
+      />
     </div>
   );
 };
