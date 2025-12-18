@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { serviceCategories } from "@/data/categories";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Star, MapPin, ArrowRight, Filter, Loader2 } from "lucide-react";
+import { SignOutButton } from "@/components/SignOutButton";
+import { Search, Star, MapPin, ArrowRight, Filter, Loader2, LogOut, User, Briefcase, Pencil, Eye } from "lucide-react";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 
 interface ServiceWithProvider {
   id: string;
@@ -15,6 +17,8 @@ interface ServiceWithProvider {
   price_per_hour: number | null;
   location: string | null;
   is_online: boolean | null;
+  image_url: string | null;
+  provider_id: string;
   profiles: {
     full_name: string;
     avatar_url: string | null;
@@ -22,12 +26,62 @@ interface ServiceWithProvider {
 }
 
 const Services = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get("category");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam);
   const [searchQuery, setSearchQuery] = useState("");
   const [services, setServices] = useState<ServiceWithProvider[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userProfileId, setUserProfileId] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+        setAuthLoading(false);
+        
+        if (session?.user) {
+          setTimeout(() => {
+            supabase
+              .from("profiles")
+              .select("id, role")
+              .eq("user_id", session.user.id)
+              .single()
+              .then(({ data }) => {
+                setUserRole(data?.role ?? null);
+                setUserProfileId(data?.id ?? null);
+              });
+          }, 0);
+        } else {
+          setUserRole(null);
+          setUserProfileId(null);
+        }
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+      
+      if (session?.user) {
+        supabase
+          .from("profiles")
+          .select("id, role")
+          .eq("user_id", session.user.id)
+          .single()
+          .then(({ data }) => {
+            setUserRole(data?.role ?? null);
+            setUserProfileId(data?.id ?? null);
+          });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     fetchServices();
@@ -46,6 +100,8 @@ const Services = () => {
           price_per_hour,
           location,
           is_online,
+          image_url,
+          provider_id,
           profiles:provider_id (
             full_name,
             avatar_url
@@ -72,12 +128,13 @@ const Services = () => {
   });
 
   const formatPrice = (service: ServiceWithProvider) => {
-    if (service.price_fixed) return `${service.price_fixed} ر.س`;
-    if (service.price_per_hour) return `${service.price_per_hour} ر.س/ساعة`;
+    if (service.price_fixed) return `${service.price_fixed} د.ج`;
+    if (service.price_per_hour) return `${service.price_per_hour} د.ج/ساعة`;
     return "اتصل للسعر";
   };
 
-  const getServiceImage = (category: string) => {
+  const getServiceImage = (category: string, imageUrl: string | null) => {
+    if (imageUrl) return imageUrl;
     const images: Record<string, string> = {
       electrician: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&h=300&fit=crop",
       plumber: "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&h=300&fit=crop",
@@ -91,25 +148,55 @@ const Services = () => {
     return images[category] || "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400&h=300&fit=crop";
   };
 
+  const isOwnService = (service: ServiceWithProvider) => {
+    return userProfileId && service.provider_id === userProfileId;
+  };
+
+  const dashboardLink = userRole === "provider" ? "/provider/dashboard" : "/customer/dashboard";
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container flex items-center justify-between h-14 sm:h-16 px-4">
           <Link to="/" className="text-xl sm:text-2xl font-bold text-gradient">
-            خدماتك
+            خدمتي
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link to="/auth">
-              <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
-                الدخول
-              </Button>
-            </Link>
-            <Link to="/auth?mode=signup">
-              <Button variant="hero" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
-                انضم
-              </Button>
-            </Link>
+            {!authLoading && (
+              user ? (
+                <>
+                  <Link to={dashboardLink}>
+                    <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-4 gap-1.5">
+                      {userRole === "provider" ? (
+                        <Briefcase className="h-4 w-4" />
+                      ) : (
+                        <User className="h-4 w-4" />
+                      )}
+                      <span className="hidden sm:inline">لوحة التحكم</span>
+                    </Button>
+                  </Link>
+                  <SignOutButton onSignedOut={() => navigate("/")}>
+                    <Button variant="ghost" size="icon" aria-label="تسجيل الخروج">
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </SignOutButton>
+                </>
+              ) : (
+                <>
+                  <Link to="/auth">
+                    <Button variant="outline" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+                      الدخول
+                    </Button>
+                  </Link>
+                  <Link to="/auth?mode=signup">
+                    <Button variant="hero" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+                      انضم
+                    </Button>
+                  </Link>
+                </>
+              )
+            )}
           </div>
         </div>
       </nav>
@@ -128,7 +215,7 @@ const Services = () => {
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="ابحث عن خدمة..."
+              placeholder="ابحث عن خدمة أو مقدم خدمة..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-11 sm:h-12 pr-10 text-sm sm:text-base"
@@ -144,9 +231,9 @@ const Services = () => {
         <div className="flex gap-2 overflow-x-auto pb-3 sm:pb-4 mb-6 sm:mb-8 scrollbar-hide -mx-4 px-4">
           <button
             onClick={() => setSelectedCategory(null)}
-            className={`px-3 sm:px-4 py-2 rounded-full whitespace-nowrap transition-all text-sm ${
+            className={`px-3 sm:px-4 py-2 rounded-full whitespace-nowrap transition-all text-sm font-medium ${
               !selectedCategory
-                ? "bg-primary text-primary-foreground"
+                ? "bg-primary text-primary-foreground shadow-md"
                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
             }`}
           >
@@ -156,9 +243,9 @@ const Services = () => {
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={`px-3 sm:px-4 py-2 rounded-full whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 text-sm ${
+              className={`px-3 sm:px-4 py-2 rounded-full whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 text-sm font-medium ${
                 selectedCategory === category.id
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary text-primary-foreground shadow-md"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
@@ -170,8 +257,9 @@ const Services = () => {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">جاري تحميل الخدمات...</p>
           </div>
         )}
 
@@ -180,19 +268,28 @@ const Services = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredServices.map((service, index) => {
               const category = serviceCategories.find(c => c.id === service.category);
+              const isOwn = isOwnService(service);
+              
               return (
-                <Link
+                <div
                   key={service.id}
-                  to={`/booking/${service.id}`}
-                  className="group animate-fade-up"
+                  className={`group animate-fade-up relative ${isOwn ? 'ring-2 ring-primary/50' : ''}`}
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
-                  <div className="bg-card rounded-xl sm:rounded-2xl overflow-hidden shadow-soft hover:shadow-card transition-all duration-300 hover:-translate-y-1 border border-border/50">
+                  {/* Own service badge */}
+                  {isOwn && (
+                    <div className="absolute -top-2 -right-2 z-10 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full shadow-md">
+                      خدمتك
+                    </div>
+                  )}
+                  
+                  <div className="bg-card rounded-xl sm:rounded-2xl overflow-hidden shadow-soft hover:shadow-card transition-all duration-300 hover:-translate-y-1 border border-border/50 h-full flex flex-col">
                     <div className="aspect-video relative overflow-hidden">
                       <img
-                        src={service.profiles?.avatar_url || getServiceImage(service.category)}
+                        src={getServiceImage(service.category, service.image_url)}
                         alt={service.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
                       />
                       <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
                         <span className="px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-background/90 backdrop-blur-sm text-foreground">
@@ -207,33 +304,46 @@ const Services = () => {
                         </div>
                       )}
                     </div>
-                    <div className="p-4 sm:p-5">
+                    <div className="p-4 sm:p-5 flex-1 flex flex-col">
                       <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-semibold text-base sm:text-lg text-foreground">{service.title}</h3>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-base sm:text-lg text-foreground truncate">{service.title}</h3>
                           <p className="text-xs sm:text-sm text-muted-foreground">{service.profiles?.full_name}</p>
                         </div>
                       </div>
                       {service.location && (
-                        <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
-                          <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          {service.location}
+                        <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground mb-2">
+                          <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <span className="truncate">{service.location}</span>
                         </div>
                       )}
                       {service.description && (
-                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 line-clamp-2">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4 line-clamp-2 flex-1">
                           {service.description}
                         </p>
                       )}
-                      <div className="flex items-center justify-between">
-                        <span className="text-primary font-semibold text-sm sm:text-base">{formatPrice(service)}</span>
-                        <Button variant="hero" size="sm" className="text-xs sm:text-sm">
-                          احجز الآن
-                        </Button>
+                      <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/50">
+                        <span className="text-primary font-bold text-sm sm:text-base">{formatPrice(service)}</span>
+                        
+                        {isOwn ? (
+                          <Link to="/provider/dashboard">
+                            <Button variant="outline" size="sm" className="text-xs sm:text-sm gap-1.5">
+                              <Pencil className="h-3.5 w-3.5" />
+                              تعديل
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Link to={`/booking/${service.id}`}>
+                            <Button variant="hero" size="sm" className="text-xs sm:text-sm gap-1.5">
+                              <Eye className="h-3.5 w-3.5" />
+                              احجز الآن
+                            </Button>
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
@@ -241,22 +351,36 @@ const Services = () => {
 
         {/* Empty State */}
         {!loading && filteredServices.length === 0 && (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="h-8 w-8 text-muted-foreground" />
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mx-auto mb-6">
+              <Search className="h-10 w-10 text-muted-foreground" />
             </div>
-            <p className="text-muted-foreground text-lg mb-2">لا توجد خدمات متاحة حالياً</p>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="text-xl font-semibold text-foreground mb-2">لا توجد خدمات متاحة</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
               {services.length === 0 
-                ? "كن أول من يقدم خدمة على المنصة!" 
-                : "جرب تغيير معايير البحث"}
+                ? "كن أول من يقدم خدمة على منصة خدمتي!" 
+                : "جرب تغيير معايير البحث أو اختيار فئة أخرى"}
             </p>
-            {services.length === 0 && (
-              <Link to="/auth?mode=signup">
-                <Button variant="hero" className="mt-4">
+            {services.length === 0 && !user && (
+              <Link to="/auth?mode=signup&role=provider">
+                <Button variant="hero" size="lg" className="gap-2">
+                  <Briefcase className="h-5 w-5" />
                   سجل كمقدم خدمة
                 </Button>
               </Link>
+            )}
+            {services.length === 0 && user && userRole === "provider" && (
+              <Link to="/provider/dashboard">
+                <Button variant="hero" size="lg" className="gap-2">
+                  <Briefcase className="h-5 w-5" />
+                  أضف خدمتك الأولى
+                </Button>
+              </Link>
+            )}
+            {selectedCategory && (
+              <Button variant="outline" onClick={() => setSelectedCategory(null)} className="mt-4">
+                عرض كل الخدمات
+              </Button>
             )}
           </div>
         )}

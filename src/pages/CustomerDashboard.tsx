@@ -51,7 +51,7 @@ const CustomerDashboard = () => {
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container flex items-center justify-between h-14 sm:h-16 px-4">
           <Link to="/" className="text-xl sm:text-2xl font-bold text-gradient">
-            خدماتك
+            خدمتي
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
