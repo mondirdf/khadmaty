@@ -98,8 +98,8 @@ export default {
           to: { opacity: "1", filter: "blur(0)" },
         },
         "glow": {
-          from: { boxShadow: "0 0 20px hsl(174 62% 40% / 0.3)" },
-          to: { boxShadow: "0 0 40px hsl(174 62% 40% / 0.5)" },
+          from: { boxShadow: "0 0 20px hsl(221 83% 53% / 0.3)" },
+          to: { boxShadow: "0 0 40px hsl(221 83% 53% / 0.5)" },
         },
       },
       animation: {

@@ -233,7 +233,7 @@ const Index = () => {
                 اختر نوع الخدمة التي تحتاجها واعثر على أفضل المتخصصين في منطقتك
               </p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 stagger-children" role="list">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 stagger-children" role="list">
               {serviceCategories.map((category) => (
                 <Link 
                   key={category.id} 
@@ -241,12 +241,12 @@ const Index = () => {
                   className="group" 
                   role="listitem"
                 >
-                  <article className="glass-card rounded-xl sm:rounded-2xl p-5 sm:p-6 card-interactive hover:border-primary/30">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl gradient-hero flex items-center justify-center mb-4 group-hover:scale-110 group-hover:shadow-glow transition-all duration-300" aria-hidden="true">
-                      <category.icon className="h-6 w-6 sm:h-7 sm:w-7 text-primary-foreground" />
+                  <article className="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 card-interactive hover:border-primary/30 min-h-[180px] sm:min-h-[200px]">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl gradient-hero flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 group-hover:shadow-glow transition-all duration-300" aria-hidden="true">
+                      <category.icon className="h-7 w-7 sm:h-8 sm:w-8 text-primary-foreground" />
                     </div>
-                    <h3 className="font-semibold text-foreground mb-1.5 text-sm sm:text-base">{category.name}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{category.description}</p>
+                    <h3 className="font-semibold text-foreground mb-2 text-base sm:text-lg">{category.name}</h3>
+                    <p className="text-sm sm:text-base text-muted-foreground line-clamp-2 leading-relaxed">{category.description}</p>
                   </article>
                 </Link>
               ))}
