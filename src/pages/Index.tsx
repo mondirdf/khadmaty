@@ -139,7 +139,7 @@ const Index = () => {
               </div>
               <h1 id="hero-heading" className="text-3xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
                 خدمتي - احجز خدماتك
-                <span className="block text-gradient mt-2 animate-glow">بكل سهولة وأمان</span>
+                <span className="block text-gradient mt-2 animate-text-glow">بكل سهولة وأمان</span>
               </h1>
               <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-8 animate-fade-up px-2 leading-relaxed" style={{ animationDelay: "0.2s" }}>
                 منصة خدمتي تجمع أفضل مقدمي الخدمات المنزلية والمهنية في منطقتك. 
