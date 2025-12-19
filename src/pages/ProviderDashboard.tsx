@@ -3,7 +3,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
-import { Calendar, Plus, Briefcase, LogOut, Settings, Pencil } from "lucide-react";
+import { Calendar, Plus, Briefcase, LogOut, Settings, Pencil, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { AddServiceDialog } from "@/components/AddServiceDialog";
 import { EditServiceDialog } from "@/components/EditServiceDialog";
 import { SignOutButton } from "@/components/SignOutButton";
@@ -20,6 +31,9 @@ const ProviderDashboard = () => {
   const [editingService, setEditingService] = useState<Tables<"services"> | null>(null);
   const [services, setServices] = useState<Tables<"services">[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingService, setDeletingService] = useState<Tables<"services"> | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchServices = async () => {
     if (!user) return;
@@ -47,6 +61,30 @@ const ProviderDashboard = () => {
       console.error("Error fetching services:", error);
     } finally {
       setServicesLoading(false);
+    }
+  };
+
+  const handleDeleteService = async () => {
+    if (!deletingService) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("services")
+        .delete()
+        .eq("id", deletingService.id);
+
+      if (error) throw error;
+
+      toast.success("تم حذف الخدمة بنجاح");
+      setServices(services.filter(s => s.id !== deletingService.id));
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      toast.error("حدث خطأ أثناء حذف الخدمة");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+      setDeletingService(null);
     }
   };
 
@@ -243,7 +281,7 @@ const ProviderDashboard = () => {
                                   )}
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
+                              <div className="flex items-center gap-1 flex-shrink-0">
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -254,6 +292,17 @@ const ProviderDashboard = () => {
                                   className="h-8 w-8"
                                 >
                                   <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setDeletingService(service);
+                                    setShowDeleteConfirm(true);
+                                  }}
+                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                                 <span className={`text-xs px-2 py-1 rounded-full ${service.is_active ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
                                   {service.is_active ? 'نشط' : 'غير نشط'}
@@ -284,6 +333,27 @@ const ProviderDashboard = () => {
         onServiceUpdated={fetchServices}
         service={editingService}
       />
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل أنت متأكد من حذف هذه الخدمة؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف خدمة "{deletingService?.title}" نهائياً. هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel disabled={isDeleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteService}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "جاري الحذف..." : "حذف الخدمة"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
