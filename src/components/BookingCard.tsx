@@ -1,8 +1,16 @@
-import { Calendar, Clock, MapPin, Phone, User, MessageSquare } from "lucide-react";
+import { Calendar, Clock, MapPin, Phone, MessageSquare, PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BookingStatusBadge } from "./BookingStatusBadge";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+
+const formatPhoneForWhatsApp = (phone: string): string => {
+  let cleaned = phone.replace(/\D/g, "");
+  if (cleaned.startsWith("0")) {
+    cleaned = "213" + cleaned.slice(1);
+  }
+  return cleaned;
+};
 
 interface BookingCardProps {
   booking: {
@@ -151,6 +159,34 @@ export const BookingCard = ({
             >
               تقييم الخدمة
             </Button>
+          )}
+
+          {/* Contact buttons for customers */}
+          {userType === "customer" && booking.provider?.phone && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(`tel:${booking.provider?.phone}`, "_self")}
+                className="gap-1"
+              >
+                <PhoneCall className="h-4 w-4" />
+                <span className="hidden sm:inline">اتصال</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const phone = formatPhoneForWhatsApp(booking.provider?.phone || "");
+                  const message = `مرحباً، أنا ${booking.customer_name}. لدي حجز لخدمة "${booking.service?.title}" بتاريخ ${format(new Date(booking.booking_date), "d MMMM yyyy", { locale: ar })}`;
+                  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank");
+                }}
+                className="gap-1 text-emerald-600 hover:text-emerald-600 hover:bg-emerald-500/10"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span className="hidden sm:inline">واتساب</span>
+              </Button>
+            </>
           )}
         </div>
       </div>
