@@ -125,6 +125,47 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          reference_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          reference_id?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          reference_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -158,8 +199,71 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          booking_id: string
+          comment: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          provider_id: string
+          rating: number
+          service_id: string
+        }
+        Insert: {
+          booking_id: string
+          comment?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          provider_id: string
+          rating: number
+          service_id: string
+        }
+        Update: {
+          booking_id?: string
+          comment?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          provider_id?: string
+          rating?: number
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
+          average_rating: number | null
           category: string
           created_at: string
           description: string | null
@@ -172,9 +276,11 @@ export type Database = {
           price_per_hour: number | null
           provider_id: string
           title: string
+          total_reviews: number | null
           updated_at: string
         }
         Insert: {
+          average_rating?: number | null
           category: string
           created_at?: string
           description?: string | null
@@ -187,9 +293,11 @@ export type Database = {
           price_per_hour?: number | null
           provider_id: string
           title: string
+          total_reviews?: number | null
           updated_at?: string
         }
         Update: {
+          average_rating?: number | null
           category?: string
           created_at?: string
           description?: string | null
@@ -202,6 +310,7 @@ export type Database = {
           price_per_hour?: number | null
           provider_id?: string
           title?: string
+          total_reviews?: number | null
           updated_at?: string
         }
         Relationships: [
