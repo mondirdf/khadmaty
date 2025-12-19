@@ -223,8 +223,8 @@ const Index = () => {
         </section>
 
         {/* Categories Section */}
-        <section className="py-12 sm:py-20 px-4" aria-labelledby="categories-heading">
-          <div className="container">
+        <section className="py-12 sm:py-20 px-2 sm:px-4" aria-labelledby="categories-heading">
+          <div className="container px-1 sm:px-4">
             <div className="text-center mb-10 sm:mb-14">
               <h2 id="categories-heading" className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4">
                 فئات الخدمات المتاحة
@@ -233,7 +233,7 @@ const Index = () => {
                 اختر نوع الخدمة التي تحتاجها واعثر على أفضل المتخصصين في منطقتك
               </p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 stagger-children" role="list">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 lg:gap-6 stagger-children" role="list">
               {serviceCategories.map((category) => (
                 <Link 
                   key={category.id} 
@@ -241,7 +241,7 @@ const Index = () => {
                   className="group" 
                   role="listitem"
                 >
-                  <article className="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 card-interactive hover:border-primary/30 min-h-[180px] sm:min-h-[200px]">
+                  <article className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-8 card-interactive hover:border-primary/30 min-h-[160px] sm:min-h-[200px] w-full">
                     <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl gradient-hero flex items-center justify-center mb-4 sm:mb-5 group-hover:scale-110 group-hover:shadow-glow transition-all duration-300" aria-hidden="true">
                       <category.icon className="h-7 w-7 sm:h-8 sm:w-8 text-primary-foreground" />
                     </div>
