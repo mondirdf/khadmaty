@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +19,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { serviceCategories } from "@/data/categories";
-import { Loader2, Upload, X } from "lucide-react";
+import { wilayas, getWilayaName } from "@/data/wilayas";
+import { Loader2, Upload, X, MapPin } from "lucide-react";
 
 interface AddServiceDialogProps {
   open: boolean;
@@ -31,6 +32,7 @@ export const AddServiceDialog = ({ open, onOpenChange, onServiceAdded }: AddServ
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [userWilaya, setUserWilaya] = useState<string>("");
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -38,7 +40,29 @@ export const AddServiceDialog = ({ open, onOpenChange, onServiceAdded }: AddServ
     price_fixed: "",
     price_per_hour: "",
     location: "",
+    wilaya: "",
   });
+
+  // Fetch user's wilaya as default
+  useEffect(() => {
+    const fetchUserWilaya = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("wilaya")
+          .eq("user_id", user.id)
+          .single();
+        if (profile?.wilaya) {
+          setUserWilaya(profile.wilaya);
+          setFormData(prev => ({ ...prev, wilaya: profile.wilaya }));
+        }
+      }
+    };
+    if (open) {
+      fetchUserWilaya();
+    }
+  }, [open]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -122,6 +146,7 @@ export const AddServiceDialog = ({ open, onOpenChange, onServiceAdded }: AddServ
         price_fixed: formData.price_fixed ? parseFloat(formData.price_fixed) : null,
         price_per_hour: formData.price_per_hour ? parseFloat(formData.price_per_hour) : null,
         location: formData.location.trim() || null,
+        wilaya: formData.wilaya || null,
         provider_id: profile.id,
         is_active: true,
         image_url: imageUrl,
@@ -141,6 +166,7 @@ export const AddServiceDialog = ({ open, onOpenChange, onServiceAdded }: AddServ
         price_fixed: "",
         price_per_hour: "",
         location: "",
+        wilaya: userWilaya,
       });
       setImageFile(null);
       setImagePreview(null);
@@ -265,10 +291,32 @@ export const AddServiceDialog = ({ open, onOpenChange, onServiceAdded }: AddServ
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="location">الموقع</Label>
+            <Label htmlFor="wilaya" className="flex items-center gap-1.5">
+              <MapPin className="h-4 w-4" />
+              الولاية
+            </Label>
+            <Select
+              value={formData.wilaya}
+              onValueChange={(value) => setFormData({ ...formData, wilaya: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر الولاية" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {wilayas.map((w) => (
+                  <SelectItem key={w.code} value={w.code}>
+                    {w.code} - {w.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="location">الموقع التفصيلي</Label>
             <Input
               id="location"
-              placeholder="مثال: الرياض - حي النسيم"
+              placeholder="مثال: حي النسيم - شارع الملك فهد"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
             />

@@ -176,6 +176,7 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           user_id: string
+          wilaya: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -186,6 +187,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id: string
+          wilaya?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -196,6 +198,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id?: string
+          wilaya?: string | null
         }
         Relationships: []
       }
@@ -278,6 +281,7 @@ export type Database = {
           title: string
           total_reviews: number | null
           updated_at: string
+          wilaya: string | null
         }
         Insert: {
           average_rating?: number | null
@@ -295,6 +299,7 @@ export type Database = {
           title: string
           total_reviews?: number | null
           updated_at?: string
+          wilaya?: string | null
         }
         Update: {
           average_rating?: number | null
@@ -312,6 +317,7 @@ export type Database = {
           title?: string
           total_reviews?: number | null
           updated_at?: string
+          wilaya?: string | null
         }
         Relationships: [
           {

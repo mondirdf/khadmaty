@@ -3,11 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
-import { ArrowRight, Camera, Loader2, LogOut, User as UserIcon } from "lucide-react";
+import { ArrowRight, Camera, Loader2, LogOut, User as UserIcon, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { SignOutButton } from "@/components/SignOutButton";
+import { wilayas, getWilayaName } from "@/data/wilayas";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +34,7 @@ const Settings = () => {
     full_name: "",
     phone: "",
     avatar_url: "",
+    wilaya: "",
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -76,7 +79,7 @@ const Settings = () => {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("full_name, phone, avatar_url")
+      .select("full_name, phone, avatar_url, wilaya")
       .eq("user_id", user.id)
       .single();
 
@@ -85,6 +88,7 @@ const Settings = () => {
         full_name: data.full_name || "",
         phone: data.phone || "",
         avatar_url: data.avatar_url || "",
+        wilaya: data.wilaya || "",
       });
     }
   };
@@ -100,6 +104,7 @@ const Settings = () => {
           full_name: formData.full_name.trim(),
           phone: formData.phone.trim() || null,
           avatar_url: formData.avatar_url || null,
+          wilaya: formData.wilaya || null,
         })
         .eq("user_id", user.id);
 
@@ -293,8 +298,35 @@ const Settings = () => {
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="05xxxxxxxx"
-                dir="ltr"
+              dir="ltr"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="wilaya" className="flex items-center gap-1.5">
+                <MapPin className="h-4 w-4" />
+                الولاية
+              </Label>
+              <Select 
+                value={formData.wilaya} 
+                onValueChange={(value) => setFormData({ ...formData, wilaya: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر ولايتك" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {wilayas.map((w) => (
+                    <SelectItem key={w.code} value={w.code}>
+                      {w.code} - {w.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formData.wilaya && (
+                <p className="text-xs text-muted-foreground">
+                  الولاية الحالية: {getWilayaName(formData.wilaya)}
+                </p>
+              )}
             </div>
 
             <Button
