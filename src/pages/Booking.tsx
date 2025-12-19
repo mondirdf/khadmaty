@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ArrowRight, Star, MapPin, Clock, Phone, CheckCircle, LogOut, User } from "lucide-react";
+import { ArrowRight, Star, MapPin, Clock, Phone, CheckCircle, LogOut, User, Loader2, MessageCircle } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser, Session } from "@supabase/supabase-js";
 import { SignOutButton } from "@/components/SignOutButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { StarRating } from "@/components/StarRating";
 
 // Validation schema for booking form
 const bookingSchema = z.object({
@@ -39,26 +40,31 @@ const bookingSchema = z.object({
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
-// Demo provider data
-const demoProvider = {
-  id: "1",
-  name: "أحمد محمد",
-  category: "كهربائي",
-  rating: 4.9,
-  reviews: 127,
-  location: "الرياض - حي النزهة",
-  price: "150 ر.س/ساعة",
-  image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&h=400&fit=crop",
-  bio: "خبرة أكثر من 10 سنوات في أعمال الكهرباء المنزلية والتجارية. متخصص في التمديدات والصيانة وحل المشاكل الكهربائية.",
-  services: ["تمديدات كهربائية", "صيانة دورية", "إصلاح أعطال", "تركيب إضاءة"],
-  availability: ["09:00 - 12:00", "14:00 - 18:00", "19:00 - 21:00"],
-};
+interface ServiceData {
+  id: string;
+  title: string;
+  category: string;
+  description: string | null;
+  image_url: string | null;
+  price_fixed: number | null;
+  price_per_hour: number | null;
+  location: string | null;
+  average_rating: number | null;
+  total_reviews: number | null;
+  provider_id: string;
+  provider: {
+    id: string;
+    full_name: string;
+    phone: string | null;
+  } | null;
+}
 
 const Booking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [step, setStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
@@ -70,6 +76,11 @@ const Booking = () => {
   });
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof BookingFormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Service data from database
+  const [service, setService] = useState<ServiceData | null>(null);
+  const [serviceLoading, setServiceLoading] = useState(true);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -86,6 +97,72 @@ const Booking = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Fetch service data
+  useEffect(() => {
+    const fetchService = async () => {
+      if (!id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("services")
+          .select(`
+            *,
+            provider:profiles!services_provider_id_fkey(id, full_name, phone)
+          `)
+          .eq("id", id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setService(data as unknown as ServiceData);
+          
+          // Fetch availability for this service
+          const { data: availData } = await supabase
+            .from("availability")
+            .select("*")
+            .eq("service_id", id)
+            .eq("is_available", true);
+
+          if (availData && availData.length > 0) {
+            const slots = availData.map(a => `${a.start_time.slice(0, 5)} - ${a.end_time.slice(0, 5)}`);
+            setAvailableSlots([...new Set(slots)]);
+          } else {
+            // Default slots if no availability set
+            setAvailableSlots(["09:00 - 12:00", "14:00 - 18:00", "19:00 - 21:00"]);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching service:", error);
+        toast.error("لم يتم العثور على الخدمة");
+        navigate("/services");
+      } finally {
+        setServiceLoading(false);
+      }
+    };
+
+    fetchService();
+  }, [id, navigate]);
+
+  // Get customer profile ID
+  useEffect(() => {
+    const fetchProfileId = async () => {
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (data) {
+        setProfileId(data.id);
+      }
+    };
+
+    fetchProfileId();
+  }, [user]);
 
   // Pre-fill form with user data
   useEffect(() => {
@@ -119,18 +196,105 @@ const Booking = () => {
     }
   };
 
+  const formatPrice = () => {
+    if (!service) return "اتصل للسعر";
+    if (service.price_fixed) return `${service.price_fixed} د.ج`;
+    if (service.price_per_hour) return `${service.price_per_hour} د.ج/ساعة`;
+    return "اتصل للسعر";
+  };
+
+  const sendWhatsAppMessage = () => {
+    if (!service?.provider?.phone) {
+      toast.error("لا يوجد رقم هاتف لمقدم الخدمة");
+      return;
+    }
+
+    // Format phone number for WhatsApp (remove leading 0 and add country code)
+    let phoneNumber = service.provider.phone.replace(/\s/g, "");
+    if (phoneNumber.startsWith("0")) {
+      phoneNumber = "213" + phoneNumber.substring(1); // Algeria country code
+    }
+
+    // Create booking message
+    const message = `🔔 *طلب حجز جديد من خدمتي*
+
+📋 *تفاصيل الحجز:*
+• الخدمة: ${service.title}
+• التاريخ: ${new Date(selectedDate).toLocaleDateString("ar-SA", { weekday: "long", month: "long", day: "numeric" })}
+• الوقت: ${selectedTime}
+
+👤 *معلومات العميل:*
+• الاسم: ${formData.name}
+• الهاتف: ${formData.phone}
+• الموقع: ${formData.location}
+${formData.notes ? `• ملاحظات: ${formData.notes}` : ""}
+
+💰 *السعر المتوقع:* ${formatPrice()}
+
+---
+يرجى التأكيد أو التواصل مع العميل.`;
+
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+  };
+
   const handleSubmit = async () => {
     if (!validateForm()) {
       toast.error("يرجى تصحيح الأخطاء في النموذج");
       return;
     }
+
+    if (!user) {
+      toast.error("يرجى تسجيل الدخول أولاً");
+      navigate("/auth");
+      return;
+    }
+
+    if (!profileId || !service) {
+      toast.error("حدث خطأ، يرجى المحاولة مرة أخرى");
+      return;
+    }
     
     setIsSubmitting(true);
-    // Simulate API call - in production this would insert to database with server-side validation
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    toast.success("تم إرسال طلب الحجز بنجاح!");
-    setStep(4);
-    setIsSubmitting(false);
+    
+    try {
+      // Save booking to database
+      const { error } = await supabase.from("bookings").insert({
+        service_id: service.id,
+        provider_id: service.provider_id,
+        customer_id: profileId,
+        booking_date: selectedDate,
+        start_time: selectedTime.split(" - ")[0],
+        end_time: selectedTime.split(" - ")[1] || null,
+        customer_name: formData.name,
+        customer_phone: formData.phone,
+        customer_location: formData.location,
+        notes: formData.notes || null,
+        status: "pending",
+      });
+
+      if (error) throw error;
+
+      // Create notification for provider
+      await supabase.from("notifications").insert({
+        user_id: service.provider_id,
+        title: "طلب حجز جديد",
+        message: `لديك طلب حجز جديد من ${formData.name} لخدمة "${service.title}"`,
+        type: "booking",
+        reference_id: service.id,
+      });
+
+      // Send WhatsApp message
+      sendWhatsAppMessage();
+
+      toast.success("تم إرسال طلب الحجز بنجاح!");
+      setStep(4);
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      toast.error("حدث خطأ أثناء إرسال الحجز");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Generate dates for next 7 days
@@ -146,6 +310,27 @@ const Booking = () => {
 
   const userRole = user?.user_metadata?.role;
   const dashboardLink = userRole === "provider" ? "/provider/dashboard" : "/customer/dashboard";
+
+  if (serviceLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!service) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">لم يتم العثور على الخدمة</p>
+          <Link to="/services">
+            <Button variant="hero">العودة للخدمات</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -191,28 +376,40 @@ const Booking = () => {
 
         {step < 4 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {/* Provider Info - Hidden on mobile during booking steps, shown at top */}
+            {/* Provider Info */}
             <div className="md:col-span-1 order-first md:order-none">
               <div className="bg-card rounded-xl sm:rounded-2xl overflow-hidden shadow-soft border border-border/50 md:sticky md:top-24">
-                <img
-                  src={demoProvider.image}
-                  alt={demoProvider.name}
-                  className="w-full aspect-video sm:aspect-square object-cover"
-                />
+                {service.image_url && (
+                  <img
+                    src={service.image_url}
+                    alt={service.title}
+                    className="w-full aspect-video sm:aspect-square object-cover"
+                  />
+                )}
                 <div className="p-4 sm:p-5">
-                  <h2 className="text-lg sm:text-xl font-bold text-foreground mb-1">{demoProvider.name}</h2>
-                  <p className="text-primary font-medium mb-2 sm:mb-3 text-sm sm:text-base">{demoProvider.category}</p>
-                  <div className="flex items-center gap-1 text-xs sm:text-sm mb-2">
-                    <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-accent text-accent" />
-                    <span className="font-medium">{demoProvider.rating}</span>
-                    <span className="text-muted-foreground">({demoProvider.reviews} تقييم)</span>
+                  <h2 className="text-lg sm:text-xl font-bold text-foreground mb-1">{service.title}</h2>
+                  <p className="text-primary font-medium mb-2 sm:mb-3 text-sm sm:text-base">{service.category}</p>
+                  
+                  {service.provider && (
+                    <p className="text-sm text-muted-foreground mb-2">
+                      بواسطة: {service.provider.full_name}
+                    </p>
+                  )}
+                  
+                  <div className="flex items-center gap-2 text-xs sm:text-sm mb-2">
+                    <StarRating rating={Number(service.average_rating) || 0} size="sm" />
+                    <span className="text-muted-foreground">({service.total_reviews || 0} تقييم)</span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
-                    <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    {demoProvider.location}
-                  </div>
+                  
+                  {service.location && (
+                    <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
+                      <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      {service.location}
+                    </div>
+                  )}
+                  
                   <div className="pt-3 sm:pt-4 border-t border-border">
-                    <span className="text-xl sm:text-2xl font-bold text-primary">{demoProvider.price}</span>
+                    <span className="text-xl sm:text-2xl font-bold text-primary">{formatPrice()}</span>
                   </div>
                 </div>
               </div>
@@ -271,7 +468,7 @@ const Booking = () => {
                   <div className="mb-6 sm:mb-8">
                     <Label className="mb-2 sm:mb-3 block text-sm sm:text-base">الوقت</Label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
-                      {demoProvider.availability.map((time) => (
+                      {availableSlots.map((time) => (
                         <button
                           key={time}
                           onClick={() => setSelectedTime(time)}
@@ -406,12 +603,12 @@ const Booking = () => {
                     <h4 className="font-semibold text-foreground mb-3 sm:mb-4 text-sm sm:text-base">تفاصيل الحجز</h4>
                     <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">مقدم الخدمة:</span>
-                        <span className="font-medium">{demoProvider.name}</span>
+                        <span className="text-muted-foreground">الخدمة:</span>
+                        <span className="font-medium">{service.title}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">الخدمة:</span>
-                        <span className="font-medium">{demoProvider.category}</span>
+                        <span className="text-muted-foreground">مقدم الخدمة:</span>
+                        <span className="font-medium">{service.provider?.full_name}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">التاريخ:</span>
@@ -424,7 +621,7 @@ const Booking = () => {
                       <div className="pt-2 sm:pt-3 border-t border-border">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">السعر المتوقع:</span>
-                          <span className="font-bold text-primary">{demoProvider.price}</span>
+                          <span className="font-bold text-primary">{formatPrice()}</span>
                         </div>
                       </div>
                     </div>
@@ -454,6 +651,14 @@ const Booking = () => {
                     </div>
                   </div>
 
+                  {/* WhatsApp Info */}
+                  <div className="bg-emerald-500/10 rounded-xl p-4 mb-4 sm:mb-6 flex items-center gap-3">
+                    <MessageCircle className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                    <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                      سيتم إرسال تفاصيل الحجز تلقائياً إلى واتساب مقدم الخدمة
+                    </p>
+                  </div>
+
                   <div className="flex gap-2 sm:gap-3">
                     <Button variant="outline" size="lg" onClick={() => setStep(2)} className="text-sm sm:text-base">
                       السابق
@@ -461,11 +666,21 @@ const Booking = () => {
                     <Button
                       variant="hero"
                       size="lg"
-                      className="flex-1 text-sm sm:text-base"
+                      className="flex-1 text-sm sm:text-base gap-2"
                       onClick={handleSubmit}
                       disabled={isSubmitting}
                     >
-                      {isSubmitting ? "جاري الإرسال..." : "تأكيد الحجز"}
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          جاري الإرسال...
+                        </>
+                      ) : (
+                        <>
+                          <MessageCircle className="h-4 w-4" />
+                          تأكيد وإرسال عبر واتساب
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -482,7 +697,7 @@ const Booking = () => {
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">تم إرسال طلب الحجز!</h2>
             <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto px-4">
-              سيتواصل معك {demoProvider.name} قريباً لتأكيد الموعد.
+              تم إرسال تفاصيل الحجز إلى {service.provider?.full_name} عبر واتساب. سيتواصل معك قريباً.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center px-4">
               <Link to="/services" className="w-full sm:w-auto">
@@ -490,9 +705,9 @@ const Booking = () => {
                   تصفح المزيد
                 </Button>
               </Link>
-              <Link to="/" className="w-full sm:w-auto">
+              <Link to="/customer/dashboard" className="w-full sm:w-auto">
                 <Button variant="hero" size="lg" className="w-full">
-                  العودة للرئيسية
+                  حجوزاتي
                 </Button>
               </Link>
             </div>
