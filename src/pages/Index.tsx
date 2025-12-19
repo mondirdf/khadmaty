@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/SignOutButton";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { serviceCategories } from "@/data/categories";
 import { ArrowLeft, Star, Users, Clock, Shield, LogOut, User, Briefcase, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -79,6 +80,7 @@ const Index = () => {
               خدمتي
             </Link>
             <div className="flex items-center gap-2 sm:gap-3">
+              <ThemeToggle />
               <Link to="/services" className="hidden sm:block">
                 <Button variant="ghost" size="sm" className="hover:bg-primary/10">
                   الخدمات

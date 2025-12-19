@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { serviceCategories } from "@/data/categories";
 import { supabase } from "@/integrations/supabase/client";
 import { SignOutButton } from "@/components/SignOutButton";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Search, Star, MapPin, ArrowRight, Filter, Loader2, LogOut, User, Briefcase, Pencil, Eye } from "lucide-react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -166,6 +167,7 @@ const Services = () => {
             خدمتي
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle />
             {!authLoading && (
               user ? (
                 <>
