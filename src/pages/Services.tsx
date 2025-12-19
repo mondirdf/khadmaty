@@ -7,9 +7,11 @@ import { serviceCategories } from "@/data/categories";
 import { supabase } from "@/integrations/supabase/client";
 import { SignOutButton } from "@/components/SignOutButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Search, Star, MapPin, ArrowRight, Filter, Loader2, LogOut, User, Briefcase, Pencil, Eye } from "lucide-react";
+import { Search, Star, MapPin, ArrowRight, Filter, Loader2, LogOut, User, Briefcase, Pencil, Eye, MessageSquare } from "lucide-react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { wilayas, getWilayaName } from "@/data/wilayas";
+import { StarRating } from "@/components/StarRating";
+import { ServiceReviewsDialog } from "@/components/ServiceReviewsDialog";
 
 interface ServiceWithProvider {
   id: string;
@@ -23,6 +25,8 @@ interface ServiceWithProvider {
   is_online: boolean | null;
   image_url: string | null;
   provider_id: string;
+  average_rating: number | null;
+  total_reviews: number | null;
   profiles: {
     full_name: string;
     avatar_url: string | null;
@@ -44,6 +48,7 @@ const Services = () => {
   const [userProfileId, setUserProfileId] = useState<string | null>(null);
   const [userWilaya, setUserWilaya] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [selectedServiceForReviews, setSelectedServiceForReviews] = useState<ServiceWithProvider | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -120,6 +125,8 @@ const Services = () => {
           is_online,
           image_url,
           provider_id,
+          average_rating,
+          total_reviews,
           profiles:provider_id (
             full_name,
             avatar_url,
@@ -386,6 +393,16 @@ const Services = () => {
                           <p className="text-xs sm:text-sm text-muted-foreground">{service.profiles?.full_name}</p>
                         </div>
                       </div>
+                      {/* Rating Section */}
+                      <button
+                        onClick={() => setSelectedServiceForReviews(service)}
+                        className="flex items-center gap-2 mb-2 hover:bg-secondary/50 rounded-lg p-1.5 -m-1.5 transition-colors"
+                      >
+                        <StarRating rating={service.average_rating || 0} size="sm" />
+                        <span className="text-xs text-muted-foreground">
+                          ({service.total_reviews || 0} تقييم)
+                        </span>
+                      </button>
                       {service.location && (
                         <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground mb-2">
                           <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
@@ -469,6 +486,18 @@ const Services = () => {
           </div>
         )}
       </div>
+
+      {/* Reviews Dialog */}
+      {selectedServiceForReviews && (
+        <ServiceReviewsDialog
+          open={!!selectedServiceForReviews}
+          onOpenChange={(open) => !open && setSelectedServiceForReviews(null)}
+          serviceId={selectedServiceForReviews.id}
+          serviceName={selectedServiceForReviews.title}
+          averageRating={selectedServiceForReviews.average_rating || 0}
+          totalReviews={selectedServiceForReviews.total_reviews || 0}
+        />
+      )}
     </div>
   );
 };
