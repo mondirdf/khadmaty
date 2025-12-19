@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { serviceCategories } from "@/data/categories";
 import { supabase } from "@/integrations/supabase/client";
 import { SignOutButton } from "@/components/SignOutButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Search, Star, MapPin, ArrowRight, Filter, Loader2, LogOut, User, Briefcase, Pencil, Eye } from "lucide-react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import { wilayas, getWilayaName } from "@/data/wilayas";
 
 interface ServiceWithProvider {
   id: string;
@@ -17,12 +19,14 @@ interface ServiceWithProvider {
   price_fixed: number | null;
   price_per_hour: number | null;
   location: string | null;
+  wilaya: string | null;
   is_online: boolean | null;
   image_url: string | null;
   provider_id: string;
   profiles: {
     full_name: string;
     avatar_url: string | null;
+    wilaya: string | null;
   } | null;
 }
 
@@ -31,12 +35,14 @@ const Services = () => {
   const [searchParams] = useSearchParams();
   const categoryParam = searchParams.get("category");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(categoryParam);
+  const [selectedWilaya, setSelectedWilaya] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [services, setServices] = useState<ServiceWithProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userProfileId, setUserProfileId] = useState<string | null>(null);
+  const [userWilaya, setUserWilaya] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
@@ -49,17 +55,23 @@ const Services = () => {
           setTimeout(() => {
             supabase
               .from("profiles")
-              .select("id, role")
+              .select("id, role, wilaya")
               .eq("user_id", session.user.id)
               .single()
               .then(({ data }) => {
                 setUserRole(data?.role ?? null);
                 setUserProfileId(data?.id ?? null);
+                setUserWilaya(data?.wilaya ?? null);
+                // Auto-select user's wilaya for filtering
+                if (data?.wilaya) {
+                  setSelectedWilaya(data.wilaya);
+                }
               });
           }, 0);
         } else {
           setUserRole(null);
           setUserProfileId(null);
+          setUserWilaya(null);
         }
       }
     );
@@ -71,12 +83,16 @@ const Services = () => {
       if (session?.user) {
         supabase
           .from("profiles")
-          .select("id, role")
+          .select("id, role, wilaya")
           .eq("user_id", session.user.id)
           .single()
           .then(({ data }) => {
             setUserRole(data?.role ?? null);
             setUserProfileId(data?.id ?? null);
+            setUserWilaya(data?.wilaya ?? null);
+            if (data?.wilaya) {
+              setSelectedWilaya(data.wilaya);
+            }
           });
       }
     });
@@ -100,12 +116,14 @@ const Services = () => {
           price_fixed,
           price_per_hour,
           location,
+          wilaya,
           is_online,
           image_url,
           provider_id,
           profiles:provider_id (
             full_name,
-            avatar_url
+            avatar_url,
+            wilaya
           )
         `)
         .eq("is_active", true);
@@ -119,8 +137,12 @@ const Services = () => {
     }
   };
 
+  // Filter services
   const filteredServices = services.filter((service) => {
     const matchesCategory = !selectedCategory || service.category === selectedCategory;
+    const matchesWilaya = !selectedWilaya || selectedWilaya === "all" ||
+      service.wilaya === selectedWilaya || 
+      service.profiles?.wilaya === selectedWilaya;
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery || 
       service.title.toLowerCase().includes(searchLower) ||
@@ -128,7 +150,23 @@ const Services = () => {
       service.description?.toLowerCase().includes(searchLower) ||
       service.location?.toLowerCase().includes(searchLower) ||
       serviceCategories.find(c => c.id === service.category)?.name.includes(searchQuery);
-    return matchesCategory && matchesSearch;
+    return matchesCategory && matchesSearch && matchesWilaya;
+  });
+
+  // Sort services: same wilaya first, then others
+  const sortedServices = [...filteredServices].sort((a, b) => {
+    const aWilaya = a.wilaya || a.profiles?.wilaya;
+    const bWilaya = b.wilaya || b.profiles?.wilaya;
+    
+    // If user has selected a wilaya, prioritize matching services
+    if (selectedWilaya) {
+      const aMatch = aWilaya === selectedWilaya;
+      const bMatch = bWilaya === selectedWilaya;
+      if (aMatch && !bMatch) return -1;
+      if (!aMatch && bMatch) return 1;
+    }
+    
+    return 0;
   });
 
   const formatPrice = (service: ServiceWithProvider) => {
@@ -226,10 +264,20 @@ const Services = () => {
               className="h-11 sm:h-12 pr-10 text-sm sm:text-base"
             />
           </div>
-          <Button variant="outline" className="h-11 sm:h-12 gap-2">
-            <Filter className="h-4 w-4" />
-            تصفية
-          </Button>
+          <Select value={selectedWilaya} onValueChange={setSelectedWilaya}>
+            <SelectTrigger className="h-11 sm:h-12 w-full sm:w-[200px]">
+              <MapPin className="h-4 w-4 ml-2" />
+              <SelectValue placeholder="كل الولايات" />
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px]">
+              <SelectItem value="all">كل الولايات</SelectItem>
+              {wilayas.map((w) => (
+                <SelectItem key={w.code} value={w.code}>
+                  {w.code} - {w.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Categories */}
@@ -272,15 +320,18 @@ const Services = () => {
         {!loading && (
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-muted-foreground">
-              {searchQuery ? (
-                <>عثرنا على <span className="font-semibold text-foreground">{filteredServices.length}</span> نتيجة للبحث عن "<span className="text-primary">{searchQuery}</span>"</>
+              {searchQuery || selectedWilaya ? (
+                <>عثرنا على <span className="font-semibold text-foreground">{sortedServices.length}</span> نتيجة
+                  {searchQuery && <> للبحث عن "<span className="text-primary">{searchQuery}</span>"</>}
+                  {selectedWilaya && selectedWilaya !== "all" && <> في <span className="text-primary">{getWilayaName(selectedWilaya)}</span></>}
+                </>
               ) : (
-                <>يوجد <span className="font-semibold text-foreground">{filteredServices.length}</span> خدمة متاحة</>
+                <>يوجد <span className="font-semibold text-foreground">{sortedServices.length}</span> خدمة متاحة</>
               )}
             </p>
-            {searchQuery && (
-              <Button variant="ghost" size="sm" onClick={() => setSearchQuery("")} className="text-xs">
-                مسح البحث
+            {(searchQuery || (selectedWilaya && selectedWilaya !== "all")) && (
+              <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setSelectedWilaya(""); }} className="text-xs">
+                مسح الفلاتر
               </Button>
             )}
           </div>
@@ -289,9 +340,10 @@ const Services = () => {
         {/* Services Grid */}
         {!loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredServices.map((service, index) => {
+            {sortedServices.map((service, index) => {
               const category = serviceCategories.find(c => c.id === service.category);
               const isOwn = isOwnService(service);
+              const serviceWilaya = service.wilaya || service.profiles?.wilaya;
               
               return (
                 <div
@@ -337,7 +389,16 @@ const Services = () => {
                       {service.location && (
                         <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground mb-2">
                           <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                          <span className="truncate">{service.location}</span>
+                          <span className="truncate">
+                            {service.location}
+                            {serviceWilaya && ` - ${getWilayaName(serviceWilaya)}`}
+                          </span>
+                        </div>
+                      )}
+                      {!service.location && serviceWilaya && (
+                        <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground mb-2">
+                          <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <span className="truncate">{getWilayaName(serviceWilaya)}</span>
                         </div>
                       )}
                       {service.description && (

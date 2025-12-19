@@ -20,7 +20,8 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { serviceCategories } from "@/data/categories";
-import { Loader2, Upload, X } from "lucide-react";
+import { wilayas } from "@/data/wilayas";
+import { Loader2, Upload, X, MapPin } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 
 interface EditServiceDialogProps {
@@ -41,6 +42,7 @@ export const EditServiceDialog = ({ open, onOpenChange, onServiceUpdated, servic
     price_fixed: "",
     price_per_hour: "",
     location: "",
+    wilaya: "",
     is_active: true,
   });
 
@@ -53,6 +55,7 @@ export const EditServiceDialog = ({ open, onOpenChange, onServiceUpdated, servic
         price_fixed: service.price_fixed?.toString() || "",
         price_per_hour: service.price_per_hour?.toString() || "",
         location: service.location || "",
+        wilaya: service.wilaya || "",
         is_active: service.is_active ?? true,
       });
       setImagePreview(service.image_url || null);
@@ -133,6 +136,7 @@ export const EditServiceDialog = ({ open, onOpenChange, onServiceUpdated, servic
           price_fixed: formData.price_fixed ? parseFloat(formData.price_fixed) : null,
           price_per_hour: formData.price_per_hour ? parseFloat(formData.price_per_hour) : null,
           location: formData.location.trim() || null,
+          wilaya: formData.wilaya || null,
           is_active: formData.is_active,
           image_url: imageUrl,
         })
@@ -266,10 +270,32 @@ export const EditServiceDialog = ({ open, onOpenChange, onServiceUpdated, servic
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-location">الموقع</Label>
+            <Label htmlFor="edit-wilaya" className="flex items-center gap-1.5">
+              <MapPin className="h-4 w-4" />
+              الولاية
+            </Label>
+            <Select
+              value={formData.wilaya}
+              onValueChange={(value) => setFormData({ ...formData, wilaya: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="اختر الولاية" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {wilayas.map((w) => (
+                  <SelectItem key={w.code} value={w.code}>
+                    {w.code} - {w.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-location">الموقع التفصيلي</Label>
             <Input
               id="edit-location"
-              placeholder="مثال: الرياض - حي النسيم"
+              placeholder="مثال: حي النسيم - شارع الملك فهد"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
             />

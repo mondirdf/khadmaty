@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Eye, EyeOff, ArrowRight, User, Briefcase } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, User, Briefcase, MapPin } from "lucide-react";
+import { wilayas } from "@/data/wilayas";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -20,6 +22,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [wilaya, setWilaya] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(() => {
@@ -47,6 +50,7 @@ const Auth = () => {
               full_name: fullName,
               phone,
               role,
+              wilaya,
             },
           },
         });
@@ -176,6 +180,24 @@ const Auth = () => {
                     className="h-11 sm:h-12"
                     dir="ltr"
                   />
+                </div>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="wilaya" className="text-sm flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4" />
+                    الولاية
+                  </Label>
+                  <Select value={wilaya} onValueChange={setWilaya} required>
+                    <SelectTrigger className="h-11 sm:h-12">
+                      <SelectValue placeholder="اختر ولايتك" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {wilayas.map((w) => (
+                        <SelectItem key={w.code} value={w.code}>
+                          {w.code} - {w.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </>
             )}
