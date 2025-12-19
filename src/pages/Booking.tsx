@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ArrowRight, Star, MapPin, Clock, Phone, CheckCircle } from "lucide-react";
+import { ArrowRight, Star, MapPin, Clock, Phone, CheckCircle, LogOut, User } from "lucide-react";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { User as SupabaseUser, Session } from "@supabase/supabase-js";
+import { SignOutButton } from "@/components/SignOutButton";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Validation schema for booking form
 const bookingSchema = z.object({
@@ -53,6 +57,8 @@ const demoProvider = {
 const Booking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [step, setStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
@@ -64,6 +70,33 @@ const Booking = () => {
   });
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof BookingFormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Pre-fill form with user data
+  useEffect(() => {
+    if (user?.user_metadata) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.user_metadata.full_name || prev.name,
+        phone: user.user_metadata.phone || prev.phone,
+      }));
+    }
+  }, [user]);
 
   const validateForm = (): boolean => {
     const result = bookingSchema.safeParse(formData);
@@ -111,19 +144,41 @@ const Booking = () => {
     };
   });
 
+  const userRole = user?.user_metadata?.role;
+  const dashboardLink = userRole === "provider" ? "/provider/dashboard" : "/customer/dashboard";
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container flex items-center justify-between h-14 sm:h-16 px-4">
           <Link to="/" className="text-xl sm:text-2xl font-bold text-gradient">
-            خدماتك
+            خدمتي
           </Link>
-          <Link to="/auth">
-            <Button variant="outline" size="sm" className="text-xs sm:text-sm">
-              تسجيل الدخول
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            {user ? (
+              <div className="flex items-center gap-2">
+                <Link to={dashboardLink}>
+                  <Button variant="ghost" size="sm" className="gap-2 text-xs sm:text-sm">
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">{user.user_metadata?.full_name || "حسابي"}</span>
+                  </Button>
+                </Link>
+                <SignOutButton onSignedOut={() => navigate("/")}>
+                  <Button variant="ghost" size="icon">
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </SignOutButton>
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                  تسجيل الدخول
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
       </nav>
 
