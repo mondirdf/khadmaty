@@ -120,9 +120,12 @@ const Services = () => {
 
   const filteredServices = services.filter((service) => {
     const matchesCategory = !selectedCategory || service.category === selectedCategory;
+    const searchLower = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery || 
-      service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.profiles?.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      service.title.toLowerCase().includes(searchLower) ||
+      service.profiles?.full_name.toLowerCase().includes(searchLower) ||
+      service.description?.toLowerCase().includes(searchLower) ||
+      service.location?.toLowerCase().includes(searchLower) ||
       serviceCategories.find(c => c.id === service.category)?.name.includes(searchQuery);
     return matchesCategory && matchesSearch;
   });
@@ -215,7 +218,7 @@ const Services = () => {
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="ابحث عن خدمة أو مقدم خدمة..."
+              placeholder="ابحث باسم الخدمة، مقدم الخدمة، الموقع..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-11 sm:h-12 pr-10 text-sm sm:text-base"
@@ -260,6 +263,24 @@ const Services = () => {
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
             <p className="text-muted-foreground">جاري تحميل الخدمات...</p>
+          </div>
+        )}
+
+        {/* Results Count */}
+        {!loading && (
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">
+              {searchQuery ? (
+                <>عثرنا على <span className="font-semibold text-foreground">{filteredServices.length}</span> نتيجة للبحث عن "<span className="text-primary">{searchQuery}</span>"</>
+              ) : (
+                <>يوجد <span className="font-semibold text-foreground">{filteredServices.length}</span> خدمة متاحة</>
+              )}
+            </p>
+            {searchQuery && (
+              <Button variant="ghost" size="sm" onClick={() => setSearchQuery("")} className="text-xs">
+                مسح البحث
+              </Button>
+            )}
           </div>
         )}
 
